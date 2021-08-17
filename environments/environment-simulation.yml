@@ -1,0 +1,16 @@
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - jupyter
+  - numpy
+  - pandas
+  - scipy
+  - xarray
+  - zarr
+  - numba
+  - opencv
+  - ffmpeg-python
+  - dask
+  - distributed
+  - black
