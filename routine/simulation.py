@@ -4,7 +4,7 @@ import xarray as xr
 from cv2 import GaussianBlur
 from numpy import random
 
-from minian_functions import apply_shifts, save_minian
+from minian_functions import apply_shifts, save_minian, write_video
 
 
 def gauss_cell(
@@ -168,6 +168,7 @@ def generate_data(dpath, **kwargs):
     )
     for dat in [Y, A, C, S, shifts]:
         save_minian(dat, dpath=dpath, overwrite=True)
+    write_video(Y, os.path.join(dpath, "simulation.mp4"))
 
 
 if __name__ == "__main__":
