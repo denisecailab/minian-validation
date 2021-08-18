@@ -1,39 +1,35 @@
+#%% import and definitions
+import os
+
 import numba as nb
 import numpy as np
 import xarray as xr
 from cv2 import GaussianBlur
 from numpy import random
+from scipy.stats import multivariate_normal
 
 from minian_functions import apply_shifts, save_minian, write_video
 
 
 def gauss_cell(
-    height: int, width: int, sigma: float, cov_coef: float, cent=None, nsamp=1000
+    height: int, width: int, sz_mean: float, sz_sigma: float, sz_min: float, cent=None
 ):
     # generate centroid
     if cent is None:
-        cent = (random.randint(height), random.randint(width))
-    # generate covariance
-    while True:
-        cov_var = random.rand(2, 2)
-        cov_var = (cov_var + cov_var.T) / 2 * cov_coef
-        cov = np.eye(2) * sigma + cov_var
-        if np.all(np.linalg.eigvals(cov) > 0):
-            break  # ensure cov is positive definite
-    # generate samples of coordinates
-    crds = np.clip(
-        np.round(random.multivariate_normal(cent, cov, size=nsamp)).astype(int),
-        0,
-        None,
+        cent = np.atleast_2d([random.randint(height), random.randint(width)])
+    # generate size
+    sz_h = np.clip(
+        random.normal(loc=sz_mean, scale=sz_sigma, size=cent.shape[0]), sz_min, None
     )
-    # generate spatial footprint
-    A = np.zeros((height, width))
-    for crd in np.unique(crds, axis=0):
-        try:
-            A[tuple(crd)] = np.sum(np.all(crds == crd, axis=1))
-        except IndexError:
-            pass
-    return A / A.max()
+    sz_w = np.clip(
+        random.normal(loc=sz_mean, scale=sz_sigma, size=cent.shape[0]), sz_min, None
+    )
+    # generate grid
+    grid = np.moveaxis(np.mgrid[:height, :width], 0, -1)
+    A = np.zeros((cent.shape[0], height, width))
+    for idx, (c, hs, ws) in enumerate(zip(cent, sz_h, sz_w)):
+        A[idx] = multivariate_normal.pdf(grid, mean=c, cov=np.array([[hs, 0], [0, ws]]))
+    return A
 
 
 @nb.jit(nopython=True, nogil=True, cache=True)
@@ -53,10 +49,11 @@ def ar_trace(frame: int, pfire: float, g: np.ndarray):
 def simulate_data(
     ncell: int,
     dims: dict,
+    sz_mean: float,
+    sz_sigma: float,
+    sz_min: float,
     sp_noise: float,
     tmp_noise: float,
-    sp_sigma: float,
-    sp_cov_coef: float,
     tmp_pfire: float,
     tmp_g_avg: float,
     tmp_g_var: float,
@@ -80,11 +77,8 @@ def simulate_data(
             axis=1,
         )
     A = xr.DataArray(
-        np.stack(
-            [
-                gauss_cell(hh_pad, ww_pad, sp_sigma, cov_coef=sp_cov_coef, cent=c)
-                for c in cent
-            ]
+        gauss_cell(
+            hh_pad, ww_pad, sz_mean=sz_mean, sz_sigma=sz_sigma, sz_min=sz_min, cent=cent
         ),
         dims=["unit_id", "height", "width"],
         coords={
@@ -171,15 +165,17 @@ def generate_data(dpath, **kwargs):
     write_video(Y, os.path.join(dpath, "simulation.mp4"))
 
 
+#%% main
 if __name__ == "__main__":
     generate_data(
         dpath="simulated_data",
         ncell=100,
-        dims={"height": 100, "width": 100, "frame": 1000},
+        dims={"height": 256, "width": 256, "frame": 1000},
+        sz_mean=3,
+        sz_sigma=0.6,
+        sz_min=0.1,
         sp_noise=0.05,
         tmp_noise=0.08,
-        sp_sigma=3,
-        sp_cov_coef=2,
         tmp_pfire=0.02,
         tmp_g_avg=0.9,
         tmp_g_var=0.03,
