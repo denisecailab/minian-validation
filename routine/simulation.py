@@ -1,10 +1,10 @@
 #%% import and definitions
 import os
+from typing import List
 
 import numba as nb
 import numpy as np
 import xarray as xr
-from cv2 import GaussianBlur
 from numpy import random
 from scipy.stats import multivariate_normal
 
@@ -12,7 +12,13 @@ from minian_functions import apply_shifts, save_minian, write_video
 
 
 def gauss_cell(
-    height: int, width: int, sz_mean: float, sz_sigma: float, sz_min: float, cent=None
+    height: int,
+    width: int,
+    sz_mean: float,
+    sz_sigma: float,
+    sz_min: float,
+    cent=None,
+    norm=True,
 ):
     # generate centroid
     if cent is None:
@@ -28,7 +34,11 @@ def gauss_cell(
     grid = np.moveaxis(np.mgrid[:height, :width], 0, -1)
     A = np.zeros((cent.shape[0], height, width))
     for idx, (c, hs, ws) in enumerate(zip(cent, sz_h, sz_w)):
-        A[idx] = multivariate_normal.pdf(grid, mean=c, cov=np.array([[hs, 0], [0, ws]]))
+        pdf = multivariate_normal.pdf(grid, mean=c, cov=np.array([[hs, 0], [0, ws]]))
+        if norm:
+            pmin, pmax = pdf.min(), pdf.max()
+            pdf = (pdf - pmin) / (pmax - pmin)
+        A[idx] = pdf
     return A
 
 
@@ -55,29 +65,31 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     return C, S
 
 
-def random_walk(n_stp, ndim=1, stp=None, p_stp=None):
+def random_walk(n_stp, ndim=1, stp=None, p_stp=None, norm=False):
     if p_stp is None:
         p_stp = np.array([1 / 3] * 3)
     if stp is None:
         stp = np.array([-1, 0, 1])
     stps = random.choice(stp, size=(n_stp, ndim), p=p_stp)
-    return np.cumsum(stps, axis=0)
+    walk = np.cumsum(stps, axis=0)
+    if norm:
+        walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
+    return walk
 
 
 def simulate_data(
     ncell: int,
     dims: dict,
+    sig_scale: float,
     sz_mean: float,
     sz_sigma: float,
     sz_min: float,
-    sp_noise: float,
     tmp_pfire: float,
     tmp_tau_d: float,
     tmp_tau_r: float,
-    bg_sigma=0,
-    bg_strength=0,
-    mo_stps=[0],
-    mo_pstp=[1],
+    bg_nsrc: int = 0,
+    mo_stps: List = [0],
+    mo_pstp: List = [1],
     cent=None,
 ):
     ff, hh, ww = (
@@ -130,15 +142,41 @@ def simulate_data(
         coords={"unit_id": np.arange(ncell), "frame": np.arange(ff)},
         name="S",
     )
-    Y = C.dot(A).rename("Y")
-    Y = Y / Y.max()
-
+    Y = C.dot(A).rename("Y") * sig_scale
+    if bg_nsrc > 0:
+        cent_bg = np.stack(
+            [
+                np.random.randint(pad, pad + hh, size=bg_nsrc),
+                np.random.randint(pad, pad + ww, size=bg_nsrc),
+            ],
+            axis=1,
+        )
+        A_bg = gauss_cell(
+            2 * pad + hh,
+            2 * pad + ww,
+            sz_mean=sz_mean * 100,
+            sz_sigma=sz_sigma * 60,
+            sz_min=sz_min,
+            cent=cent_bg,
+        )
+        C_bg = random_walk(ff, ndim=bg_nsrc, norm=True)
+        Y_bg = xr.DataArray(
+            np.tensordot(C_bg, A_bg, axes=1),
+            dims=["frame", "height", "width"],
+            coords={
+                "frame": np.arange(ff),
+                "height": np.arange(2 * pad + hh),
+                "width": np.arange(2 * pad + ww),
+            },
+            name="Y_bg",
+        )
+        Y = Y + Y_bg
     Y = (
         apply_shifts(Y, shifts)
         .compute()
         .isel(height=slice(pad, -pad), width=slice(pad, -pad))
     )
-    Y = (Y / Y.max() + random.normal(scale=sp_noise, size=(ff, hh, ww))).rename("Y")
+    Y = (Y + random.normal(scale=0.1, size=(ff, hh, ww))).rename("Y")
     return (
         Y,
         A.isel(height=slice(pad, -pad), width=slice(pad, -pad)),
@@ -166,15 +204,14 @@ if __name__ == "__main__":
         dpath="simulated_data",
         ncell=100,
         dims={"height": 256, "width": 256, "frame": 1000},
+        sig_scale=1,
         sz_mean=3,
         sz_sigma=0.6,
         sz_min=0.1,
-        sp_noise=0.05,
         tmp_pfire=0.01,
         tmp_tau_d=6,
         tmp_tau_r=1,
-        bg_sigma=20,
-        bg_strength=1,
+        bg_nsrc=100,
         mo_stps=[-2, -1, 0, 1, 2],
         mo_pstp=[0.02, 0.08, 0.8, 0.08, 0.02],
     )
