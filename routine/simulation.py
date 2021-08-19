@@ -55,6 +55,15 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     return C, S
 
 
+def random_walk(n_stp, ndim=1, stp=None, p_stp=None):
+    if p_stp is None:
+        p_stp = np.array([1 / 3] * 3)
+    if stp is None:
+        stp = np.array([-1, 0, 1])
+    stps = random.choice(stp, size=(n_stp, ndim), p=p_stp)
+    return np.cumsum(stps, axis=0)
+
+
 def simulate_data(
     ncell: int,
     dims: dict,
@@ -67,7 +76,8 @@ def simulate_data(
     tmp_tau_r: float,
     bg_sigma=0,
     bg_strength=0,
-    mo_sigma=0,
+    mo_stps=[0],
+    mo_pstp=[1],
     cent=None,
 ):
     ff, hh, ww = (
@@ -75,23 +85,34 @@ def simulate_data(
         dims["height"],
         dims["width"],
     )
-    hh_pad, ww_pad = hh + mo_sigma * 4, ww + mo_sigma * 4
+    shifts = xr.DataArray(
+        random_walk(ff, ndim=2, stp=mo_stps, p_stp=mo_pstp),
+        dims=["frame", "shift_dim"],
+        coords={"frame": np.arange(ff), "shift_dim": ["height", "width"]},
+        name="shifts",
+    )
+    pad = np.absolute(shifts).max().astype(int).values
     if cent is None:
         cent = np.stack(
-            (
-                np.random.randint(0, hh_pad, size=ncell),
-                np.random.randint(0, ww_pad, size=ncell),
-            ),
+            [
+                np.random.randint(pad, pad + hh, size=ncell),
+                np.random.randint(pad, pad + ww, size=ncell),
+            ],
             axis=1,
         )
     A = xr.DataArray(
         gauss_cell(
-            hh_pad, ww_pad, sz_mean=sz_mean, sz_sigma=sz_sigma, sz_min=sz_min, cent=cent
+            2 * pad + hh,
+            2 * pad + ww,
+            sz_mean=sz_mean,
+            sz_sigma=sz_sigma,
+            sz_min=sz_min,
+            cent=cent,
         ),
         dims=["unit_id", "height", "width"],
         coords={
-            "height": np.arange(hh_pad),
-            "width": np.arange(ww_pad),
+            "height": np.arange(2 * pad + hh),
+            "width": np.arange(2 * pad + ww),
             "unit_id": np.arange(ncell),
         },
         name="A",
@@ -111,46 +132,16 @@ def simulate_data(
     )
     Y = C.dot(A).rename("Y")
     Y = Y / Y.max()
-    if bg_strength:
-        A_bg = xr.apply_ufunc(
-            GaussianBlur,
-            A,
-            input_core_dims=[["height", "width"]],
-            output_core_dims=[["height", "width"]],
-            vectorize=True,
-            kwargs={
-                "ksize": (int(hh // 2 * 2 - 1), int(ww // 2 * 2 - 1)),
-                "sigmaX": bg_sigma,
-            },
-        )
-        Y_bg = C_noise.dot(A_bg)
-        Y_bg = Y_bg / Y_bg.max()
-        Y = Y + Y_bg * bg_strength
-    shifts = xr.DataArray(
-        np.clip(
-            random.normal(scale=mo_sigma, size=(ff, 2)),
-            a_min=-2 * mo_sigma,
-            a_max=2 * mo_sigma,
-        ),
-        dims=["frame", "shift_dim"],
-        coords={"frame": np.arange(ff), "shift_dim": ["height", "width"]},
-        name="shifts",
-    )
+
     Y = (
         apply_shifts(Y, shifts)
         .compute()
-        .isel(
-            height=slice(2 * mo_sigma, -2 * mo_sigma),
-            width=slice(2 * mo_sigma, -2 * mo_sigma),
-        )
+        .isel(height=slice(pad, -pad), width=slice(pad, -pad))
     )
     Y = (Y / Y.max() + random.normal(scale=sp_noise, size=(ff, hh, ww))).rename("Y")
     return (
         Y,
-        A.isel(
-            height=slice(2 * mo_sigma, -2 * mo_sigma),
-            width=slice(2 * mo_sigma, -2 * mo_sigma),
-        ),
+        A.isel(height=slice(pad, -pad), width=slice(pad, -pad)),
         C,
         S,
         shifts,
@@ -184,5 +175,6 @@ if __name__ == "__main__":
         tmp_tau_r=1,
         bg_sigma=20,
         bg_strength=1,
-        mo_sigma=1,
+        mo_stps=[-2, -1, 0, 1, 2],
+        mo_pstp=[0.02, 0.08, 0.8, 0.08, 0.02],
     )
