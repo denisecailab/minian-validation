@@ -46,6 +46,15 @@ def ar_trace(frame: int, pfire: float, g: np.ndarray):
     return C, S
 
 
+def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=1e-6):
+    S = random.binomial(n=1, p=pfire, size=frame).astype(float)
+    t = np.arange(frame)
+    v = np.exp(-t / tau_d) - np.exp(-t / tau_r)
+    v = v[v > trunc_thres]
+    C = np.convolve(S, v, mode="same")
+    return C, S
+
+
 def simulate_data(
     ncell: int,
     dims: dict,
@@ -53,10 +62,9 @@ def simulate_data(
     sz_sigma: float,
     sz_min: float,
     sp_noise: float,
-    tmp_noise: float,
     tmp_pfire: float,
-    tmp_g_avg: float,
-    tmp_g_var: float,
+    tmp_tau_d: float,
+    tmp_tau_r: float,
     bg_sigma=0,
     bg_strength=0,
     mo_sigma=0,
@@ -88,10 +96,7 @@ def simulate_data(
         },
         name="A",
     )
-    tmp_g = np.clip(
-        random.normal(tmp_g_avg, tmp_g_var, size=ncell), a_min=0.8, a_max=0.95
-    )
-    traces = [ar_trace(ff, tmp_pfire, np.array([g])) for g in tmp_g]
+    traces = [exp_trace(ff, tmp_pfire, tmp_tau_d, tmp_tau_r) for _ in range(len(cent))]
     C = xr.DataArray(
         np.stack([t[0] for t in traces]),
         dims=["unit_id", "frame"],
@@ -104,8 +109,7 @@ def simulate_data(
         coords={"unit_id": np.arange(ncell), "frame": np.arange(ff)},
         name="S",
     )
-    C_noise = C + random.normal(scale=tmp_noise, size=(ncell, ff))
-    Y = C_noise.dot(A).rename("Y")
+    Y = C.dot(A).rename("Y")
     Y = Y / Y.max()
     if bg_strength:
         A_bg = xr.apply_ufunc(
@@ -175,10 +179,9 @@ if __name__ == "__main__":
         sz_sigma=0.6,
         sz_min=0.1,
         sp_noise=0.05,
-        tmp_noise=0.08,
-        tmp_pfire=0.02,
-        tmp_g_avg=0.9,
-        tmp_g_var=0.03,
+        tmp_pfire=0.01,
+        tmp_tau_d=6,
+        tmp_tau_r=1,
         bg_sigma=20,
         bg_strength=1,
         mo_sigma=1,
