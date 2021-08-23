@@ -195,9 +195,9 @@ def generate_data(
         Ymax = Y.max().compute()
         Ymin = Y.min().compute()
         Y = (Y - Ymin) / (Ymax - Ymin) * 255
-    Y = Y.clip(0, 255).astype(np.uint8)
     datls = [A, C, S, shifts]
     if save_Y:
+        Y = Y.clip(0, 255).astype(np.uint8)
         datls.append(Y)
     for dat in datls:
         save_minian(dat, dpath=dpath, overwrite=True)
