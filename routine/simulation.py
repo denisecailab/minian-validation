@@ -200,11 +200,11 @@ def generate_data(
         Y = Y.clip(0, 255).astype(np.uint8)
         datls.append(Y)
     for dat in datls:
-        save_minian(dat, dpath=dpath, overwrite=True)
+        save_minian(dat, dpath=os.path.join(dpath, "simulated"), overwrite=True)
     write_video(
         Y,
         vpath=dpath,
-        vname="simulation",
+        vname="simulated",
         vext="avi",
         options={"r": "60", "pix_fmt": "gray", "vcodec": "ffv1"},
         chunked=True,
