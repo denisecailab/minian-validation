@@ -54,18 +54,15 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
     client = Client(cluster)
-    # preprocessing
-    profiler.change_phase("preprocessing")
-    try:
-        varr = open_minian(dpath)["Y"]
-    except:
-        varr = load_videos(dpath, **param["load_videos"])
+    varr = load_videos(dpath, **param["load_videos"])
     chk, _ = get_optimal_chk(varr, dtype=float)
     varr = save_minian(
         varr.chunk({"frame": chk["frame"], "height": -1, "width": -1}).rename("varr"),
         intpath,
         overwrite=True,
     )
+    # preprocessing
+    profiler.change_phase("preprocessing")
     varr_ref = varr
     varr_min = varr_ref.min("frame").compute()
     varr_ref = varr_ref - varr_min
@@ -235,18 +232,6 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     profiler.terminate()
 
 
-def mem_prof(proc, timeout, interval):
-    counter = 0
-    mem_ls = []
-    while counter < int(timeout / interval):
-        mem = memory_usage(proc=proc, include_children=True, multiprocess=True)
-        mem_ls.append(mem)
-        time.sleep(interval)
-        counter += 1
-    with open("mem_prof_test.pkl", "wb") as mempkl:
-        pkl.dump(mem_ls, mempkl)
-
-
 if __name__ == "__main__":
     param = {
         "save_minian": {
@@ -255,7 +240,7 @@ if __name__ == "__main__":
             "overwrite": True,
         },
         "load_videos": {
-            "pattern": "msCam[0-9]+\.avi$",
+            "pattern": ".*\.avi$",
             "dtype": np.uint8,
             "downsample": dict(frame=1, height=1, width=1),
             "downsample_strategy": "subset",
@@ -305,7 +290,7 @@ if __name__ == "__main__":
         },
     }
     profiler = PipelineProfiler(
-        proc=os.getpid(), interval=1, outpath="mem_prof.csv", nchild=20
+        proc=os.getpid(), interval=0.5, outpath="minian_prof.csv", nchild=20
     )
     minian_process(
         "simulated_data",
@@ -314,12 +299,3 @@ if __name__ == "__main__":
         param,
         profiler=profiler,
     )
-    # mem_usage = memory_usage(
-    #     (
-    #         minian_process,
-    #         ("simulated_data", "~/var/minian-validation/intermediate", 16, param),
-    #     ),
-    #     multiprocess=True,
-    # )
-    # with open("./mprof.pkl", "wb") as mempkl:
-    #     pkl.dump(mem_usage, mempkl)

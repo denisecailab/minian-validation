@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+dependencies:
+  - caiman
+  - memory_profiler
+  - black
+  - natsort

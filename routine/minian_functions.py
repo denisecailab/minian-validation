@@ -142,7 +142,11 @@ def write_video(
     arr = arr.clip(0, 255).astype(np.uint8)
     w, h = arr.sizes["width"], arr.sizes["height"]
     process = ffmpeg.input(
-        "pipe:", format="rawvideo", pix_fmt="gray", s="{}x{}".format(w, h)
+        "pipe:",
+        format="rawvideo",
+        pix_fmt="gray",
+        s="{}x{}".format(w, h),
+        r=options["r"],
     ).filter("pad", int(np.ceil(w / 2) * 2), int(np.ceil(h / 2) * 2))
     if chunked:
         fname = [
