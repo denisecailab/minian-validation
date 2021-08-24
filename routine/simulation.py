@@ -10,7 +10,7 @@ import xarray as xr
 from numpy import random
 from scipy.stats import multivariate_normal
 
-from minian_functions import apply_shifts, save_minian, write_video
+from .minian_functions import apply_shifts, save_minian, write_video
 
 
 def gauss_cell(
