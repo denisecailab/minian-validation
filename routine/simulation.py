@@ -201,7 +201,14 @@ def generate_data(
         datls.append(Y)
     for dat in datls:
         save_minian(dat, dpath=dpath, overwrite=True)
-    write_video(Y, os.path.join(dpath, "simulation.mp4"))
+    write_video(
+        Y,
+        vpath=dpath,
+        vname="simulation",
+        vext="avi",
+        options={"r": "60", "pix_fmt": "gray", "vcodec": "ffv1"},
+        chunked=True,
+    )
 
 
 #%% main
