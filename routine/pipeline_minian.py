@@ -31,7 +31,7 @@ from minian.utilities import (
     save_minian,
 )
 
-from profiling import PipelineProfiler
+from .profiling import PipelineProfiler
 
 
 def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler):

@@ -29,7 +29,7 @@ from caiman.source_extraction import cnmf
 from caiman.source_extraction.cnmf import params as params
 from natsort import natsorted
 
-from profiling import PipelineProfiler
+from .profiling import PipelineProfiler
 
 
 def caiman_process(
