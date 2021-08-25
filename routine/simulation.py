@@ -1,6 +1,6 @@
 #%% import and definitions
 import os
-from typing import List
+import warnings
 
 import dask.array as darr
 import numba as nb
@@ -10,7 +10,7 @@ import xarray as xr
 from numpy import random
 from scipy.stats import multivariate_normal
 
-from .minian_functions import save_minian, write_video, shift_perframe
+from .minian_functions import save_minian, shift_perframe, write_video
 
 
 def gauss_cell(
@@ -67,12 +67,22 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     return C, S
 
 
-def random_walk(n_stp, ndim=1, stp=None, p_stp=None, norm=False):
-    if p_stp is None:
-        p_stp = np.array([1 / 3] * 3)
-    if stp is None:
-        stp = np.array([-1, 0, 1])
-    stps = random.choice(stp, size=(n_stp, ndim), p=p_stp)
+def random_walk(
+    n_stp, stp_var: float = 1, constrain_factor: float = 0, ndim=1, norm=False
+):
+    if constrain_factor > 0:
+        stps = np.zeros(shape=(n_stp, ndim))
+        for i in range(n_stp):
+            try:
+                last = stps[i - 1]
+            except IndexError:
+                last = 0
+            stps[i] = random.normal(
+                loc=-constrain_factor * last, scale=stp_var, size=ndim
+            )
+    else:
+        stps = random.normal(loc=0, scale=stp_var, size=(n_stp, ndim))
+    stps = np.around(stps).astype(int)
     walk = np.cumsum(stps, axis=0)
     if norm:
         walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
@@ -91,9 +101,10 @@ def simulate_data(
     tmp_tau_r: float,
     post_offset: float,
     post_gain: float,
-    bg_nsrc: int = 0,
-    mo_stps: List = [0],
-    mo_pstp: List = [1],
+    bg_nsrc: int,
+    bg_tmp_var: float,
+    mo_stp_var: float,
+    mo_cons_fac: float = 1,
     cent=None,
     zero_thres=1e-8,
     chk_size=1000,
@@ -105,13 +116,17 @@ def simulate_data(
     )
     shifts = xr.DataArray(
         darr.from_array(
-            random_walk(ff, ndim=2, stp=mo_stps, p_stp=mo_pstp), chunks=(chk_size, -1)
+            random_walk(ff, ndim=2, stp_var=mo_stp_var, constrain_factor=mo_cons_fac),
+            chunks=(chk_size, -1),
         ),
         dims=["frame", "shift_dim"],
         coords={"frame": np.arange(ff), "shift_dim": ["height", "width"]},
         name="shifts",
     )
     pad = np.absolute(shifts).max().values.item()
+    if pad > 20:
+        warnings.warn("maximum shift is {}, clipping".format(pad))
+        shifts = shifts.clip(-20, 20)
     if cent is None:
         cent = np.stack(
             [
@@ -153,7 +168,8 @@ def simulate_data(
         sparse.COO.from_numpy(np.where(A_bg > zero_thres, A_bg, 0)), chunks=-1
     )
     C_bg = darr.from_array(
-        random_walk(ff, ndim=bg_nsrc, norm=True), chunks=(chk_size, -1)
+        random_walk(ff, ndim=bg_nsrc, stp_var=bg_tmp_var, norm=True),
+        chunks=(chk_size, -1),
     )
     Y = darr.blockwise(
         computeY,
@@ -246,8 +262,9 @@ if __name__ == "__main__":
         tmp_tau_d=6,
         tmp_tau_r=1,
         bg_nsrc=100,
-        mo_stps=[-2, -1, 0, 1, 2],
-        mo_pstp=[0.02, 0.08, 0.8, 0.08, 0.02],
+        bg_tmp_var=2,
+        mo_stp_var=0.05,
+        mo_cons_fac=1,
         post_offset=1,
         post_gain=50,
     )

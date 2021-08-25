@@ -44,8 +44,9 @@ if __name__ == "__main__":
             tmp_tau_d=6,
             tmp_tau_r=1,
             bg_nsrc=100,
-            mo_stps=[-2, -1, 0, 1, 2],
-            mo_pstp=[0.02, 0.08, 0.8, 0.08, 0.02],
+            bg_tmp_var=2,
+            mo_stp_var=0.05,
+            mo_cons_fac=1,
             post_offset=1,
             post_gain=50,
         )
