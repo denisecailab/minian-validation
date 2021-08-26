@@ -19,6 +19,7 @@ Demo is also available as a jupyter notebook (see demo_pipeline_cnmfE.ipynb)
 """
 
 import os
+import pickle as pkl
 import re
 
 import caiman as cm
@@ -34,6 +35,7 @@ from .profiling import PipelineProfiler
 
 def caiman_process(
     dpath,
+    outpath,
     n_processes,
     mc_dict,
     params_dict,
@@ -55,6 +57,8 @@ def caiman_process(
         ignore_preexisting=True,
     )
     dpath = os.path.normpath(os.path.abspath(dpath))
+    outpath = os.path.normpath(os.path.abspath(outpath))
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
     fnames = natsorted(
         [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
     )
@@ -108,9 +112,14 @@ def caiman_process(
     print(" ***** ")
     print("Number of total components: ", len(cnm.estimates.C))
     print("Number of accepted components: ", len(cnm.estimates.idx_components))
+    with open(outpath, "wb") as pklf:
+        pkl.dump(cnm.estimates, pklf)
     # terminate
     cm.stop_server(dview=dview)
     profiler.terminate()
+    files = [f for f in os.listdir(dpath) if f.endswith(".mmap")]
+    for f in files:
+        os.remove(os.path.join(dpath, f))
 
 
 if __name__ == "__main__":
@@ -159,5 +168,11 @@ if __name__ == "__main__":
         proc=os.getpid(), interval=0.5, outpath="caiman_prof.csv", nchild=20
     )
     caiman_process(
-        "simulated_data", 16, mc_dict, params_dict, quality_dict, profiler=profiler
+        "simulated_data",
+        "simulated_data/caiman_result.pkl",
+        16,
+        mc_dict,
+        params_dict,
+        quality_dict,
+        profiler=profiler,
     )
