@@ -16,3 +16,4 @@ dependencies:
   - black
   - holoviews
   - sparse
+  - plotly
