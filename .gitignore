@@ -4,3 +4,5 @@ __pycache__
 *.mp4
 *.avi
 dask-worker-space
+.ipynb_checkpoints
+*.pkl
