@@ -16,3 +16,5 @@ dependencies:
   - black
   - holoviews
   - sparse
+  - plotly
+  - python-kaleido

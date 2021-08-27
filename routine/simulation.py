@@ -1,6 +1,6 @@
 #%% import and definitions
 import os
-from typing import List
+import warnings
 
 import dask.array as darr
 import numba as nb
@@ -10,7 +10,7 @@ import xarray as xr
 from numpy import random
 from scipy.stats import multivariate_normal
 
-from minian_functions import apply_shifts, save_minian, write_video
+from .minian_functions import save_minian, shift_perframe, write_video
 
 
 def gauss_cell(
@@ -67,12 +67,22 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     return C, S
 
 
-def random_walk(n_stp, ndim=1, stp=None, p_stp=None, norm=False):
-    if p_stp is None:
-        p_stp = np.array([1 / 3] * 3)
-    if stp is None:
-        stp = np.array([-1, 0, 1])
-    stps = random.choice(stp, size=(n_stp, ndim), p=p_stp)
+def random_walk(
+    n_stp, stp_var: float = 1, constrain_factor: float = 0, ndim=1, norm=False
+):
+    if constrain_factor > 0:
+        stps = np.zeros(shape=(n_stp, ndim))
+        for i in range(n_stp):
+            try:
+                last = stps[i - 1]
+            except IndexError:
+                last = 0
+            stps[i] = random.normal(
+                loc=-constrain_factor * last, scale=stp_var, size=ndim
+            )
+    else:
+        stps = random.normal(loc=0, scale=stp_var, size=(n_stp, ndim))
+    stps = np.around(stps).astype(int)
     walk = np.cumsum(stps, axis=0)
     if norm:
         walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
@@ -89,9 +99,12 @@ def simulate_data(
     tmp_pfire: float,
     tmp_tau_d: float,
     tmp_tau_r: float,
-    bg_nsrc: int = 0,
-    mo_stps: List = [0],
-    mo_pstp: List = [1],
+    post_offset: float,
+    post_gain: float,
+    bg_nsrc: int,
+    bg_tmp_var: float,
+    mo_stp_var: float,
+    mo_cons_fac: float = 1,
     cent=None,
     zero_thres=1e-8,
     chk_size=1000,
@@ -103,13 +116,17 @@ def simulate_data(
     )
     shifts = xr.DataArray(
         darr.from_array(
-            random_walk(ff, ndim=2, stp=mo_stps, p_stp=mo_pstp), chunks=(chk_size, -1)
+            random_walk(ff, ndim=2, stp_var=mo_stp_var, constrain_factor=mo_cons_fac),
+            chunks=(chk_size, -1),
         ),
         dims=["frame", "shift_dim"],
         coords={"frame": np.arange(ff), "shift_dim": ["height", "width"]},
         name="shifts",
     )
     pad = np.absolute(shifts).max().values.item()
+    if pad > 20:
+        warnings.warn("maximum shift is {}, clipping".format(pad))
+        shifts = shifts.clip(-20, 20)
     if cent is None:
         cent = np.stack(
             [
@@ -130,39 +147,56 @@ def simulate_data(
         sparse.COO.from_numpy(np.where(A > zero_thres, A, 0)), chunks=-1
     )
     traces = [exp_trace(ff, tmp_pfire, tmp_tau_d, tmp_tau_r) for _ in range(len(cent))]
-    C = darr.from_array(np.stack([t[0] for t in traces]), chunks=(-1, chk_size))
-    S = darr.from_array(np.stack([t[1] for t in traces]), chunks=(-1, chk_size))
-    Y = darr.tensordot(C, A, axes=[(0,), (0,)]) * sig_scale
-    if bg_nsrc > 0:
-        cent_bg = np.stack(
-            [
-                np.random.randint(pad, pad + hh, size=bg_nsrc),
-                np.random.randint(pad, pad + ww, size=bg_nsrc),
-            ],
-            axis=1,
-        )
-        A_bg = gauss_cell(
-            2 * pad + hh,
-            2 * pad + ww,
-            sz_mean=sz_mean * 100,
-            sz_sigma=sz_sigma * 60,
-            sz_min=sz_min,
-            cent=cent_bg,
-        )
-        A_bg = darr.from_array(
-            sparse.COO.from_numpy(np.where(A_bg > zero_thres, A_bg, 0)), chunks=-1
-        )
-        C_bg = darr.from_array(
-            random_walk(ff, ndim=bg_nsrc, norm=True), chunks=(chk_size, -1)
-        )
-        Y_bg = darr.tensordot(C_bg, A_bg, axes=1)
-        Y = Y + Y_bg
-    Y = Y + darr.random.normal(
-        scale=0.1, size=(ff, hh + 2 * pad, ww + 2 * pad), chunks=(chk_size, -1, -1)
+    C = darr.from_array(np.stack([t[0] for t in traces]).T, chunks=(chk_size, -1))
+    S = darr.from_array(np.stack([t[1] for t in traces]).T, chunks=(chk_size, -1))
+    cent_bg = np.stack(
+        [
+            np.random.randint(pad, pad + hh, size=bg_nsrc),
+            np.random.randint(pad, pad + ww, size=bg_nsrc),
+        ],
+        axis=1,
     )
+    A_bg = gauss_cell(
+        2 * pad + hh,
+        2 * pad + ww,
+        sz_mean=sz_mean * 100,
+        sz_sigma=sz_sigma * 60,
+        sz_min=sz_min,
+        cent=cent_bg,
+    )
+    A_bg = darr.from_array(
+        sparse.COO.from_numpy(np.where(A_bg > zero_thres, A_bg, 0)), chunks=-1
+    )
+    C_bg = darr.from_array(
+        random_walk(ff, ndim=bg_nsrc, stp_var=bg_tmp_var, norm=True),
+        chunks=(chk_size, -1),
+    )
+    Y = darr.blockwise(
+        computeY,
+        "fhw",
+        A,
+        "uhw",
+        C,
+        "fu",
+        A_bg,
+        "bhw",
+        C_bg,
+        "fb",
+        shifts.data,
+        "fs",
+        dtype=np.uint8,
+        sig_scale=sig_scale,
+        noise_scale=0.1,
+        post_offset=post_offset,
+        post_gain=post_gain,
+    )
+    Y = Y[:, pad:-pad, pad:-pad]
     uids, hs, ws, fs = np.arange(ncell), np.arange(hh), np.arange(ww), np.arange(ff)
     Y = xr.DataArray(
-        Y, dims=["frame", "height", "width"], coords={"frame": fs}, name="Y"
+        Y,
+        dims=["frame", "height", "width"],
+        coords={"frame": fs, "height": hs, "width": ws},
+        name="Y",
     )
     A = xr.DataArray(
         A[:, pad:-pad, pad:-pad].compute().todense(),
@@ -171,44 +205,47 @@ def simulate_data(
         name="A",
     )
     C = xr.DataArray(
-        C, dims=["unit_id", "frame"], coords={"unit_id": uids, "frame": fs}, name="C"
+        C, dims=["frame", "unit_id"], coords={"unit_id": uids, "frame": fs}, name="C"
     )
     S = xr.DataArray(
-        S, dims=["unit_id", "frame"], coords={"unit_id": uids, "frame": fs}, name="S"
-    )
-    Y = (
-        apply_shifts(Y, shifts)
-        .isel(height=slice(pad, -pad), width=slice(pad, -pad))
-        .assign_coords(height=hs, width=ws)
-        .rename("Y")
+        S, dims=["frame", "unit_id"], coords={"unit_id": uids, "frame": fs}, name="S"
     )
     return Y, A, C, S, shifts
 
 
-def generate_data(
-    dpath, save_Y=False, post_offset: float = None, post_gain: float = None, **kwargs
-):
+def generate_data(dpath, save_Y=False, **kwargs):
     Y, A, C, S, shifts = simulate_data(**kwargs)
-    if (post_offset is not None) and (post_gain is not None):
-        Y = (Y + post_offset) * post_gain
-    else:
-        Ymax = Y.max().compute()
-        Ymin = Y.min().compute()
-        Y = (Y - Ymin) / (Ymax - Ymin) * 255
     datls = [A, C, S, shifts]
     if save_Y:
-        Y = Y.clip(0, 255).astype(np.uint8)
         datls.append(Y)
     for dat in datls:
-        save_minian(dat, dpath=dpath, overwrite=True)
+        save_minian(dat, dpath=os.path.join(dpath, "simulated"), overwrite=True)
     write_video(
         Y,
         vpath=dpath,
-        vname="simulation",
+        vname="simulated",
         vext="avi",
         options={"r": "60", "pix_fmt": "gray", "vcodec": "ffv1"},
         chunked=True,
     )
+
+
+def computeY(A, C, A_bg, C_bg, shifts, sig_scale, noise_scale, post_offset, post_gain):
+    A, C, A_bg, C_bg, shifts = A[0], C[0], A_bg[0], C_bg[0], shifts[0]
+    Y = sparse.tensordot(C, A, axes=1)
+    Y *= sig_scale
+    Y_bg = sparse.tensordot(C_bg, A_bg, axes=1)
+    Y += Y_bg
+    del Y_bg
+    for i, sh in enumerate(shifts):
+        Y[i, :, :] = shift_perframe(Y[i, :, :], sh, fill=0)
+    noise = np.random.normal(scale=noise_scale, size=Y.shape)
+    Y += noise
+    del noise
+    Y += post_offset
+    Y *= post_gain
+    np.clip(Y, 0, 255, out=Y)
+    return Y.astype(np.uint8)
 
 
 #%% main
@@ -225,8 +262,9 @@ if __name__ == "__main__":
         tmp_tau_d=6,
         tmp_tau_r=1,
         bg_nsrc=100,
-        mo_stps=[-2, -1, 0, 1, 2],
-        mo_pstp=[0.02, 0.08, 0.8, 0.08, 0.02],
+        bg_tmp_var=2,
+        mo_stp_var=0.05,
+        mo_cons_fac=1,
         post_offset=1,
         post_gain=50,
     )

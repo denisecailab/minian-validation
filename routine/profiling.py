@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from memory_profiler import memory_usage
 
-from utilities import append_csv
+from .utilities import append_csv
 
 
 def prof_loop(proc, interval, outpath, states) -> None:

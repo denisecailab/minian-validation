@@ -1,6 +1,4 @@
 import os
-import pickle as pkl
-import time
 
 import numpy as np
 from dask.distributed import Client, LocalCluster
@@ -31,7 +29,7 @@ from minian.utilities import (
     save_minian,
 )
 
-from profiling import PipelineProfiler
+from .profiling import PipelineProfiler
 
 
 def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler):
@@ -46,7 +44,7 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     os.environ["MINIAN_INTERMEDIATE"] = intpath
     cluster = LocalCluster(
         n_workers=n_workers,
-        memory_limit="2GB",
+        memory_limit="4GB",
         resources={"MEM": 1},
         threads_per_worker=2,
         dashboard_address="0.0.0.0:12345",
@@ -90,8 +88,9 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     ).compute()
     seeds = seeds_init(Y_fm_chk, **param["seeds_init"])
     seeds, pnr, gmm = pnr_refine(Y_hw_chk, seeds, **param["pnr_refine"])
-    seeds = ks_refine(Y_hw_chk, seeds, **param["ks_refine"])
-    seeds_final = seeds[seeds["mask_ks"] & seeds["mask_pnr"]].reset_index(drop=True)
+    # seeds = ks_refine(Y_hw_chk, seeds, **param["ks_refine"])
+    # seeds_final = seeds[seeds["mask_ks"] & seeds["mask_pnr"]].reset_index(drop=True)
+    seeds_final = seeds[seeds["mask_pnr"]].reset_index(drop=True)
     seeds_final = seeds_merge(Y_hw_chk, max_proj, seeds_final, **param["seeds_merge"])
     A_init = initA(
         Y_hw_chk, seeds_final[seeds_final["mask_mrg"]], **param["initialize"]

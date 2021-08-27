@@ -10,22 +10,6 @@ import numpy as np
 import xarray as xr
 
 
-def apply_shifts(varr, shifts, fill=np.nan):
-    sh_dim = shifts.coords["shift_dim"].values.tolist()
-    varr_sh = xr.apply_ufunc(
-        shift_perframe,
-        varr.chunk({d: -1 for d in sh_dim}),
-        shifts,
-        input_core_dims=[sh_dim, ["shift_dim"]],
-        output_core_dims=[sh_dim],
-        vectorize=True,
-        dask="parallelized",
-        kwargs={"fill": fill},
-        output_dtypes=[varr.dtype],
-    )
-    return varr_sh
-
-
 def shift_perframe(fm, sh, fill=np.nan):
     if np.isnan(fm).all():
         return fm
@@ -78,7 +62,8 @@ def write_vid_blk(arr, fname, options, process):
     process = (
         process.output(fname, **options).overwrite_output().run_async(pipe_stdin=True)
     )
-    process.stdin.write(arr.tobytes())
+    arr = arr.tobytes()
+    process.stdin.write(arr)
     process.stdin.close()
     process.wait()
     return fname
@@ -139,7 +124,8 @@ def write_video(
     #     arr -= arr_min
     #     arr /= den
     #     arr *= 255
-    arr = arr.clip(0, 255).astype(np.uint8)
+    # arr = arr.clip(0, 255)
+    # arr = arr.astype(np.uint8)
     w, h = arr.sizes["width"], arr.sizes["height"]
     process = ffmpeg.input(
         "pipe:",
