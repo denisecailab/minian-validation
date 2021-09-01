@@ -18,3 +18,5 @@ dependencies:
   - sparse
   - plotly
   - python-kaleido
+  - read-roi
+  - scikit-image
