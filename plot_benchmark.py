@@ -1,7 +1,7 @@
 """
 script to generate figures for benchmark results
 
-env: environments/environment-generic.yml
+env: environments/generic.yml
 """
 
 #%% imports and definitions

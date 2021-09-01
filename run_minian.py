@@ -1,7 +1,7 @@
 """
 script to run minian pipeline on datasets
 
-env: environments/environment-minian.yml
+env: environments/minian.yml
 """
 
 import os

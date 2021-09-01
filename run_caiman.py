@@ -1,7 +1,7 @@
 """
 script to run caiman pipeline on datasets
 
-env: environments/environment-caiman.yml
+env: environments/caiman.yml
 """
 
 import os

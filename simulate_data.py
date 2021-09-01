@@ -1,7 +1,7 @@
 """
 script to generate simulated data
 
-env: environments/environment-generic.yml
+env: environments/generic.yml
 """
 
 import itertools as itt
