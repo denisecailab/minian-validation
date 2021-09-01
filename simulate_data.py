@@ -1,3 +1,9 @@
+"""
+script to generate simulated data
+
+env: environments/environment-generic.yml
+"""
+
 import itertools as itt
 import os
 

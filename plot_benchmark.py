@@ -1,3 +1,9 @@
+"""
+script to generate figures for benchmark results
+
+env: environments/environment-generic.yml
+"""
+
 #%% imports and definitions
 import os
 import re
