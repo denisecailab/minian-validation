@@ -144,7 +144,7 @@ def write_video(
             )
             for i, a in enumerate(arr.data.to_delayed().squeeze())
         ]
-        fname = da.compute(fname)
+        fname = da.compute(fname)[0]
     else:
         fname = os.path.join(vpath, ".".join([vname, vext]))
         process = (
