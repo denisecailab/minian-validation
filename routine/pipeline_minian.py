@@ -231,6 +231,47 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     profiler.terminate()
 
 
+def preprocess_data(dpath, intpath, param, subset=None):
+    # setup
+    dpath = os.path.abspath(os.path.expanduser(dpath))
+    intpath = os.path.abspath(os.path.expanduser(intpath))
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MINIAN_INTERMEDIATE"] = intpath
+    varr = load_videos(dpath, **param["load_videos"])
+    varr = varr.sel(subset)
+    chk, _ = get_optimal_chk(varr, dtype=float)
+    varr = save_minian(
+        varr.chunk({"frame": chk["frame"], "height": -1, "width": -1}).rename("varr"),
+        intpath,
+        overwrite=True,
+    )
+    # preprocessing
+    vmin = varr.min("frame").compute()
+    varr = varr - vmin
+    varr = denoise(varr, **param["denoise"])
+    varr = remove_background(varr.astype(float), **param["background_removal"])
+    varr = save_minian(varr.rename("varr_ref"), dpath=intpath, overwrite=True)
+    max_fm_before = varr.max("frame").compute()
+    # motion-correction
+    motion = estimate_motion(varr, **param["estimate_motion"])
+    motion = save_minian(
+        motion.rename("motion").chunk({"frame": chk["frame"]}),
+        dpath=intpath,
+        overwrite=True,
+    )
+    varr_mc = apply_transform(varr, motion, fill=0)
+    varr_mc = save_minian(varr_mc.rename("varr_mc"), intpath, overwrite=True)
+    min_fm = varr_mc.min("frame").compute()
+    max_fm = varr_mc.max("frame").compute()
+    vmin = min_fm.min()
+    vmax = max_fm.max()
+    Y = (varr_mc - min_fm) * (255 / (vmax - vmin))
+    Y = save_minian(Y.astype(np.uint8).rename("Y"), intpath, overwrite=True)
+    return Y, motion, max_fm_before, max_fm
+
+
 if __name__ == "__main__":
     param = {
         "save_minian": {
