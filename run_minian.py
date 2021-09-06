@@ -1,3 +1,9 @@
+"""
+script to run minian pipeline on datasets
+
+env: environments/minian.yml
+"""
+
 import os
 import shutil
 

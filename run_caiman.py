@@ -1,3 +1,9 @@
+"""
+script to run caiman pipeline on datasets
+
+env: environments/caiman.yml
+"""
+
 import os
 
 from routine.pipeline_caiman import caiman_process
