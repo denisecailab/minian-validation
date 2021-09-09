@@ -5,4 +5,5 @@ __pycache__
 *.avi
 dask-worker-space
 .ipynb_checkpoints
-*.pkl
+*.nc
+store/*

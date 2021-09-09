@@ -7,7 +7,9 @@ import dask as da
 import dask.array as darr
 import ffmpeg
 import numpy as np
+import pandas as pd
 import xarray as xr
+from scipy.ndimage.measurements import center_of_mass
 
 
 def shift_perframe(fm, sh, fill=np.nan):
@@ -169,7 +171,7 @@ def open_minian(
         for d in os.listdir(dpath):
             arr_path = os.path.join(dpath, d)
             if os.path.isdir(arr_path):
-                arr = list(xr.open_zarr(arr_path).values())[0]
+                arr = list(xr.open_zarr(arr_path, consolidated=False).values())[0]
                 arr.data = darr.from_zarr(
                     os.path.join(arr_path, arr.name), inline_array=True
                 )
@@ -181,3 +183,42 @@ def open_minian(
     if (not return_dict) and post_process:
         ds = post_process(ds, dpath)
     return ds
+
+
+def centroid(A: xr.DataArray) -> pd.DataFrame:
+    def rel_cent(im):
+        im_nan = np.isnan(im)
+        if im_nan.all():
+            return np.array([np.nan, np.nan])
+        if im_nan.any():
+            im = np.nan_to_num(im)
+        cent = np.array(center_of_mass(im))
+        return cent / im.shape
+
+    gu_rel_cent = darr.gufunc(
+        rel_cent,
+        signature="(h,w)->(d)",
+        output_dtypes=float,
+        output_sizes=dict(d=2),
+        vectorize=True,
+    )
+    cents = xr.apply_ufunc(
+        gu_rel_cent,
+        A.chunk(dict(height=-1, width=-1)),
+        input_core_dims=[["height", "width"]],
+        output_core_dims=[["dim"]],
+        dask="allowed",
+    ).assign_coords(dim=["height", "width"])
+    cents_df = (
+        cents.rename("cents")
+        .to_series()
+        .dropna()
+        .unstack("dim")
+        .rename_axis(None, axis="columns")
+        .reset_index()
+    )
+    h_rg = (A.coords["height"].min().values, A.coords["height"].max().values)
+    w_rg = (A.coords["width"].min().values, A.coords["width"].max().values)
+    cents_df["height"] = cents_df["height"] * (h_rg[1] - h_rg[0]) + h_rg[0]
+    cents_df["width"] = cents_df["width"] * (w_rg[1] - w_rg[0]) + w_rg[0]
+    return cents_df

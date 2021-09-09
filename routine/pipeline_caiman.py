@@ -25,6 +25,7 @@ import re
 import caiman as cm
 import matplotlib.pyplot as plt
 import numpy as np
+import xarray as xr
 from caiman.motion_correction import MotionCorrect
 from caiman.source_extraction import cnmf
 from caiman.source_extraction.cnmf import params as params
@@ -112,14 +113,27 @@ def caiman_process(
     print(" ***** ")
     print("Number of total components: ", len(cnm.estimates.C))
     print("Number of accepted components: ", len(cnm.estimates.idx_components))
-    with open(outpath, "wb") as pklf:
-        pkl.dump(cnm.estimates, pklf)
+    save_caiman(cnm.estimates)
     # terminate
     cm.stop_server(dview=dview)
     profiler.terminate()
     files = [f for f in os.listdir(dpath) if f.endswith(".mmap")]
     for f in files:
         os.remove(os.path.join(dpath, f))
+
+
+def save_caiman(cnm, dpath, dsname="caiman_result.nc"):
+    A = xr.DataArray(
+        cnm.A.toarray().reshape(tuple([*cnm.dims, -1]))[:, :, cnm.idx_components],
+        dims=["width", "height", "unit_id"],
+    ).transpose("unit_id", "height", "width")
+    C = xr.DataArray(cnm.C[cnm.idx_components, :], dims=["unit_id", "frame"])
+    S = xr.DataArray(cnm.S[cnm.idx_components, :], dims=["unit_id", "frame"])
+    ds = xr.Dataset({"A": A, "C": C, "S": S})
+    for d in ds.dims:
+        ds = ds.assign_coords({d: np.arange(ds.sizes[d])})
+    ds.to_netcdf(os.path.join(dpath, dsname), mode="w")
+    return ds
 
 
 if __name__ == "__main__":
