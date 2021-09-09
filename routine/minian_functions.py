@@ -171,7 +171,7 @@ def open_minian(
         for d in os.listdir(dpath):
             arr_path = os.path.join(dpath, d)
             if os.path.isdir(arr_path):
-                arr = list(xr.open_zarr(arr_path).values())[0]
+                arr = list(xr.open_zarr(arr_path, consolidated=False).values())[0]
                 arr.data = darr.from_zarr(
                     os.path.join(arr_path, arr.name), inline_array=True
                 )
