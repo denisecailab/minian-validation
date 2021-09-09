@@ -71,19 +71,20 @@ def random_walk(
     n_stp, stp_var: float = 1, constrain_factor: float = 0, ndim=1, norm=False
 ):
     if constrain_factor > 0:
-        stps = np.zeros(shape=(n_stp, ndim))
+        walk = np.zeros(shape=(n_stp, ndim))
         for i in range(n_stp):
             try:
-                last = stps[i - 1]
+                last = walk[i - 1]
             except IndexError:
                 last = 0
-            stps[i] = random.normal(
+            walk[i] = last + random.normal(
                 loc=-constrain_factor * last, scale=stp_var, size=ndim
             )
+        walk = np.around(walk).astype(int)
     else:
         stps = random.normal(loc=0, scale=stp_var, size=(n_stp, ndim))
-    stps = np.around(stps).astype(int)
-    walk = np.cumsum(stps, axis=0)
+        stps = np.around(stps).astype(int)
+        walk = np.cumsum(stps, axis=0)
     if norm:
         walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
     return walk
@@ -190,6 +191,8 @@ def simulate_data(
         post_offset=post_offset,
         post_gain=post_gain,
     )
+    if pad == 0:
+        pad = None
     Y = Y[:, pad:-pad, pad:-pad]
     uids, hs, ws, fs = np.arange(ncell), np.arange(hh), np.arange(ww), np.arange(ff)
     Y = xr.DataArray(
@@ -228,6 +231,7 @@ def generate_data(dpath, save_Y=False, **kwargs):
         options={"r": "60", "pix_fmt": "gray", "vcodec": "ffv1"},
         chunked=True,
     )
+    return Y, A, C, S, shifts
 
 
 def computeY(A, C, A_bg, C_bg, shifts, sig_scale, noise_scale, post_offset, post_gain):
@@ -250,7 +254,7 @@ def computeY(A, C, A_bg, C_bg, shifts, sig_scale, noise_scale, post_offset, post
 
 #%% main
 if __name__ == "__main__":
-    generate_data(
+    Y, A, C, S, shifts = generate_data(
         dpath="simulated_data",
         ncell=100,
         dims={"height": 256, "width": 256, "frame": 2000},
@@ -263,8 +267,8 @@ if __name__ == "__main__":
         tmp_tau_r=1,
         bg_nsrc=100,
         bg_tmp_var=2,
-        mo_stp_var=0.05,
-        mo_cons_fac=1,
+        mo_stp_var=1,
+        mo_cons_fac=0.2,
         post_offset=1,
         post_gain=50,
     )

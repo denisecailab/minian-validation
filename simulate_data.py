@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     os.makedirs(out_path, exist_ok=True)
     cluster = LocalCluster(
-        n_workers=4,
+        n_workers=6,
         memory_limit="10GB",
         threads_per_worker=1,
         dashboard_address="0.0.0.0:12345",
@@ -51,8 +51,8 @@ if __name__ == "__main__":
             tmp_tau_r=1,
             bg_nsrc=100,
             bg_tmp_var=2,
-            mo_stp_var=0.05,
-            mo_cons_fac=1,
+            mo_stp_var=1,
+            mo_cons_fac=0.2,
             post_offset=1,
             post_gain=50,
         )
