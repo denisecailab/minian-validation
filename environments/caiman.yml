@@ -5,3 +5,5 @@ dependencies:
   - memory_profiler
   - black
   - natsort
+  - xarray
+  - netcdf4
