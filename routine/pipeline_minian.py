@@ -103,7 +103,10 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
         overwrite=True,
         chunks={"unit_id": 1, "frame": -1},
     )
-    A, C = unit_merge(A_init, C_init, **param["init_merge"])
+    try:
+        A, C = unit_merge(A_init, C_init, **param["init_merge"])
+    except:
+        A, C = A_init, C_init
     A = save_minian(A.rename("A"), intpath, overwrite=True)
     C = save_minian(C.rename("C"), intpath, overwrite=True)
     C_chk = save_minian(
@@ -164,7 +167,12 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     )
     A = A.sel(unit_id=C.coords["unit_id"].values)
     ## merge
-    A_mrg, C_mrg, [sig_mrg] = unit_merge(A, C, [C + b0 + c0], **param["first_merge"])
+    try:
+        A_mrg, C_mrg, [sig_mrg] = unit_merge(
+            A, C, [C + b0 + c0], **param["first_merge"]
+        )
+    except:
+        A_mrg, C_mrg, sig_mrg = A, C, C + b0 + c0
     A = save_minian(A_mrg.rename("A_mrg"), intpath, overwrite=True)
     C = save_minian(C_mrg.rename("C_mrg"), intpath, overwrite=True)
     C_chk = save_minian(
