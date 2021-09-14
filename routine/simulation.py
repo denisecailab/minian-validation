@@ -131,8 +131,8 @@ def simulate_data(
     if cent is None:
         cent = np.stack(
             [
-                np.random.randint(pad, pad + hh, size=ncell),
-                np.random.randint(pad, pad + ww, size=ncell),
+                np.random.randint(pad * 2, hh, size=ncell),
+                np.random.randint(pad * 2, ww, size=ncell),
             ],
             axis=1,
         )
