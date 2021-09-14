@@ -19,7 +19,6 @@ Demo is also available as a jupyter notebook (see demo_pipeline_cnmfE.ipynb)
 """
 
 import os
-import pickle as pkl
 import re
 
 import caiman as cm
@@ -49,7 +48,7 @@ def caiman_process(
     profiler.start()
     try:
         cm.stop_server()
-    except ():
+    except:
         pass
     c, dview, n_processes = cm.cluster.setup_cluster(
         backend="local",
@@ -59,7 +58,7 @@ def caiman_process(
     )
     dpath = os.path.normpath(os.path.abspath(dpath))
     outpath = os.path.normpath(os.path.abspath(outpath))
-    os.makedirs(os.path.dirname(outpath), exist_ok=True)
+    os.makedirs(outpath, exist_ok=True)
     fnames = natsorted(
         [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
     )
@@ -113,7 +112,7 @@ def caiman_process(
     print(" ***** ")
     print("Number of total components: ", len(cnm.estimates.C))
     print("Number of accepted components: ", len(cnm.estimates.idx_components))
-    save_caiman(cnm.estimates)
+    save_caiman(cnm.estimates, outpath)
     # terminate
     cm.stop_server(dview=dview)
     profiler.terminate()
@@ -183,7 +182,7 @@ if __name__ == "__main__":
     )
     caiman_process(
         "simulated_data",
-        "simulated_data/caiman_result.pkl",
+        "simulated_data",
         16,
         mc_dict,
         params_dict,
