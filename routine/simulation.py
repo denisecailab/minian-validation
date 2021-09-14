@@ -63,7 +63,7 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     t = np.arange(frame)
     v = np.exp(-t / tau_d) - np.exp(-t / tau_r)
     v = v[v > trunc_thres]
-    C = np.convolve(S, v, mode="same")
+    C = np.convolve(v, S, mode="full")[:frame]
     return C, S
 
 
