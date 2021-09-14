@@ -62,7 +62,6 @@ for root, dirs, files in os.walk(IN_SIM_DPATH):
     print(root)
 f1_df = pd.concat(f1_ls, ignore_index=True)
 mapping_df = pd.concat(mapping_ls, ignore_index=True)
-#%%
 f1_df.astype({"ncell": int, "nfm": int}).to_feather(
     os.path.join(OUT_PATH, "f1.feather")
 )
