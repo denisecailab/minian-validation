@@ -98,4 +98,5 @@ for mtype, mdf in metric_df.items():
     nrow, _ = fig._get_subplot_rows_columns()
     for r in nrow:
         fig.update_yaxes(matches="y" + str(r) * 3, row=r)
+    fig.update_yaxes(range=[0.8, 1.1])
     fig.write_image(os.path.join(FIG_PATH, "{}.pdf".format(mtype)))
