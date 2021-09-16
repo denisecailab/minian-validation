@@ -77,11 +77,11 @@ metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics]
     .median()
     .reset_index()
-    .sort_values("nfm"),
+    .sort_values(["nfm", "ncell"]),
     "worst": mapping_df.groupby(id_vars)[metrics]
     .min()
     .reset_index()
-    .sort_values("nfm"),
+    .sort_values(["nfm", "ncell"]),
 }
 f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1.feather"))
 for mtype, mdf in metric_df.items():
