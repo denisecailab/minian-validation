@@ -60,6 +60,7 @@ MINIAN_PARAMS = {
         "add_lag": 20,
         "jac_thres": 0.2,
         "med_wd": 1000,
+        "use_smooth": False,
     },
     "first_merge": {"thres_corr": 0.6},
     "second_spatial": {
@@ -75,6 +76,7 @@ MINIAN_PARAMS = {
         "add_lag": 20,
         "jac_thres": 0.4,
         "med_wd": 1000,
+        "use_smooth": False,
     },
 }
 
