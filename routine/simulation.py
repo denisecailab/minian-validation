@@ -63,7 +63,7 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
     t = np.arange(frame)
     v = np.exp(-t / tau_d) - np.exp(-t / tau_r)
     v = v[v > trunc_thres]
-    C = np.convolve(S, v, mode="same")
+    C = np.convolve(v, S, mode="full")[:frame]
     return C, S
 
 
@@ -131,8 +131,8 @@ def simulate_data(
     if cent is None:
         cent = np.stack(
             [
-                np.random.randint(pad, pad + hh, size=ncell),
-                np.random.randint(pad, pad + ww, size=ncell),
+                np.random.randint(pad * 2, hh, size=ncell),
+                np.random.randint(pad * 2, ww, size=ncell),
             ],
             axis=1,
         )

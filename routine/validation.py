@@ -89,17 +89,30 @@ def compute_metrics(
     mapping = compute_mapping(cent_true, cent, 3)
     precision = len(mapping) / len(cent)
     recall = len(mapping) / len(cent_true)
-    f1 = 2 * precision * recall / (precision + recall)
-    Am = A.sel(unit_id=mapping["uidB"].values)
-    Am_true = A_true.sel(unit_id=mapping["uidA"].values)
+    try:
+        f1 = 2 * precision * recall / (precision + recall)
+    except ZeroDivisionError:
+        f1 = 0
+    Am = (
+        A.sel(unit_id=mapping["uidB"].values)
+        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
+        .persist()
+    )
+    Am_true = (
+        A_true.sel(unit_id=mapping["uidA"].values)
+        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
+        .persist()
+    )
     S = (
         result_ds["S"]
+        .load()
         .sel(unit_id=mapping["uidB"].values)
         .chunk({"frame": -1, "unit_id": "auto"})
         .persist()
     )
     S_true = (
         true_ds["S"]
+        .load()
         .sel(unit_id=mapping["uidA"].values)
         .transpose("unit_id", "frame")
         .chunk({"frame": -1, "unit_id": "auto"})

@@ -62,7 +62,6 @@ for root, dirs, files in os.walk(IN_SIM_DPATH):
     print(root)
 f1_df = pd.concat(f1_ls, ignore_index=True)
 mapping_df = pd.concat(mapping_ls, ignore_index=True)
-#%%
 f1_df.astype({"ncell": int, "nfm": int}).to_feather(
     os.path.join(OUT_PATH, "f1.feather")
 )
@@ -78,11 +77,11 @@ metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics]
     .median()
     .reset_index()
-    .sort_values("nfm"),
+    .sort_values(["nfm", "ncell"]),
     "worst": mapping_df.groupby(id_vars)[metrics]
     .min()
     .reset_index()
-    .sort_values("nfm"),
+    .sort_values(["nfm", "ncell"]),
 }
 f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1.feather"))
 for mtype, mdf in metric_df.items():
@@ -99,4 +98,5 @@ for mtype, mdf in metric_df.items():
     nrow, _ = fig._get_subplot_rows_columns()
     for r in nrow:
         fig.update_yaxes(matches="y" + str(r) * 3, row=r)
+    fig.update_yaxes(range=[0.8, 1.1])
     fig.write_image(os.path.join(FIG_PATH, "{}.pdf".format(mtype)))

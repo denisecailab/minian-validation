@@ -9,7 +9,7 @@ import os
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data"
+DPATH = "./data/simulated"
 
 MC_DICT = {
     "fr": 60,  # movie frame rate
@@ -28,7 +28,7 @@ PARAM_DICT = {
     "gSig": (3, 3),  # width of a 2D gaussian kernel, which approximates a neuron
     "gSiz": (13, 13),  # average diameter of a neuron, in general 4*gSig+1
     "merge_thr": 0.7,  # merging threshold, max correlation allowed
-    "p": 1,  # order of the autoregressive system
+    "p": 2,  # order of the autoregressive system
     "tsub": 1,  # downsampling factor in time for initialization
     "ssub": 1,  # downsampling factor in space for initialization
     "rf": 40,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
@@ -46,6 +46,7 @@ PARAM_DICT = {
     "ssub_B": 2,  # additional downsampling factor in space for background
     "ring_size_factor": 1.4,  # radius of ring is gSiz*ring_size_factor
     "del_duplicates": True,  # whether to remove duplicates from initialization
+    "memory_efficient": True,
 }
 QUALITY_DICT = {
     "min_SNR": 2.5,  # adaptive way to set threshold on the transient size
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         try:
             caiman_process(
                 root,
-                os.path.join(root, "caiman_result.pkl"),
+                root,
                 16,
                 MC_DICT,
                 PARAM_DICT,
