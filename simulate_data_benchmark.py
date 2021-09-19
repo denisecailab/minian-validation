@@ -24,7 +24,7 @@ if __name__ == "__main__":
             "distributed.worker.memory.terminate": 0.99,
         }
     )
-    out_path = "data/simulated"
+    out_path = "data/simulated/benchmark"
     frame_ls = [4000, 12000, 20000, 28000]
     ncell_ls = [100, 300, 500]
 
