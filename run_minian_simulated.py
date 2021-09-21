@@ -12,7 +12,7 @@ import numpy as np
 from routine.pipeline_minian import minian_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated"
+DPATH = "./data/simulated/validation"
 
 MINIAN_INT_PATH = "~/var/minian-validation/intermediate"
 MINIAN_PARAMS = {
@@ -41,7 +41,7 @@ MINIAN_PARAMS = {
         "max_wnd": 10,
         "diff_thres": 5,
     },
-    "pnr_refine": {"noise_freq": 0.2, "thres": 1.5},
+    "pnr_refine": {"noise_freq": 0.2, "thres": 1},
     # "ks_refine": {"sig": 0.05},
     "seeds_merge": {"thres_dist": 3, "thres_corr": 0.9, "noise_freq": 0.2},
     "initialize": {"thres_corr": 0.8, "wnd": 10, "noise_freq": 0.2},
@@ -56,7 +56,7 @@ MINIAN_PARAMS = {
     "first_temporal": {
         "noise_freq": 0.2,
         "sparse_penal": 0.2,
-        "p": 2,
+        "p": 1,
         "add_lag": 20,
         "jac_thres": 0.2,
         "med_wd": 1000,
@@ -72,7 +72,7 @@ MINIAN_PARAMS = {
     "second_temporal": {
         "noise_freq": 0.2,
         "sparse_penal": 0.1,
-        "p": 2,
+        "p": 1,
         "add_lag": 20,
         "jac_thres": 0.4,
         "med_wd": 1000,
@@ -96,7 +96,9 @@ if __name__ == "__main__":
         )
         shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
         try:
-            minian_process(root, MINIAN_INT_PATH, 16, MINIAN_PARAMS, profiler)
+            minian_process(
+                root, MINIAN_INT_PATH, 16, MINIAN_PARAMS, profiler, glow_rm=False
+            )
             print("minian sucess: {}".format(root))
         except Exception as e:
             print("minian failed: {}".format(root))

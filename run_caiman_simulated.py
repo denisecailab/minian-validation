@@ -9,7 +9,7 @@ import os
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated"
+DPATH = "./data/simulated/validation"
 
 MC_DICT = {
     "fr": 60,  # movie frame rate
@@ -28,7 +28,7 @@ PARAM_DICT = {
     "gSig": (3, 3),  # width of a 2D gaussian kernel, which approximates a neuron
     "gSiz": (13, 13),  # average diameter of a neuron, in general 4*gSig+1
     "merge_thr": 0.7,  # merging threshold, max correlation allowed
-    "p": 2,  # order of the autoregressive system
+    "p": 1,  # order of the autoregressive system
     "tsub": 1,  # downsampling factor in time for initialization
     "ssub": 1,  # downsampling factor in space for initialization
     "rf": 40,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
@@ -40,7 +40,7 @@ PARAM_DICT = {
     "low_rank_background": None,  # None leaves background of each patch intact
     "update_background_components": True,  # sometimes setting to False improve the results
     "min_corr": 0.8,  # min peak value from correlation image
-    "min_pnr": 10,  # min peak to noise ration from PNR image
+    "min_pnr": 5,  # min peak to noise ration from PNR image
     "normalize_init": False,  # just leave as is
     "center_psf": True,  # leave as is for 1 photon
     "ssub_B": 2,  # additional downsampling factor in space for background
