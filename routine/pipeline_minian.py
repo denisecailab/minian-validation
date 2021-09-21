@@ -32,7 +32,7 @@ from minian.utilities import (
 from .profiling import PipelineProfiler
 
 
-def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler):
+def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler, glow_rm=True,):
     # setup
     profiler.change_phase("setup")
     profiler.start()
@@ -62,8 +62,9 @@ def minian_process(dpath, intpath, n_workers, param, profiler: PipelineProfiler)
     # preprocessing
     profiler.change_phase("preprocessing")
     varr_ref = varr
-    # varr_min = varr_ref.min("frame").compute()
-    # varr_ref = varr_ref - varr_min
+    if glow_rm:
+        varr_min = varr_ref.min("frame").compute()
+        varr_ref = varr_ref - varr_min
     varr_ref = denoise(varr_ref, **param["denoise"])
     varr_ref = remove_background(varr_ref, **param["background_removal"])
     varr_ref = save_minian(varr_ref.rename("varr_ref"), dpath=intpath, overwrite=True)

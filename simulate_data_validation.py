@@ -24,8 +24,8 @@ if __name__ == "__main__":
             "distributed.worker.memory.terminate": 0.99,
         }
     )
-    out_path = "data/simulated"
-    frame_ls = [4000, 12000, 20000, 28000]
+    out_path = "data/simulated/validation"
+    sig_ls = [0.2, 0.6, 1, 1.4, 1.8]
     ncell_ls = [100, 300, 500]
 
     os.makedirs(out_path, exist_ok=True)
@@ -36,13 +36,13 @@ if __name__ == "__main__":
         dashboard_address="0.0.0.0:12345",
     )
     client = Client(cluster)
-    for nfm, ncell in itt.product(frame_ls, ncell_ls):
-        print("generating {} cells with {} frames".format(ncell, nfm))
+    for sig, ncell in itt.product(sig_ls, ncell_ls):
+        print("generating {} cells with signal level {}".format(ncell, sig))
         generate_data(
-            dpath=os.path.join(out_path, "fm{}-cell{}".format(nfm, ncell)),
+            dpath=os.path.join(out_path, "sig{}-cell{}".format(sig, ncell)),
             ncell=ncell,
-            dims={"height": 512, "width": 512, "frame": nfm},
-            sig_scale=1,
+            dims={"height": 512, "width": 512, "frame": 20000},
+            sig_scale=sig,
             sz_mean=3,
             sz_sigma=0.6,
             sz_min=0.1,
