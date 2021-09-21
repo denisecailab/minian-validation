@@ -14,7 +14,7 @@ from .minian_functions import centroid, shift_perframe
 
 
 def roi_to_spatial(roi: dict, shape: Tuple, dtype=bool) -> np.ndarray:
-    rr, cc = polygon(roi["x"], roi["y"], shape)
+    rr, cc = polygon(roi["y"], roi["x"], shape)
     a = np.zeros(shape, dtype=dtype)
     a[rr, cc] = 1
     return a
@@ -65,9 +65,20 @@ def compute_cos(x1: xr.DataArray, x2: xr.DataArray, centered=True) -> np.ndarray
     ).todense()
 
 
+def compute_f1(Nmap, Ntrue, Nobs):
+    precision = Nmap / Nobs
+    recall = Nmap / Ntrue
+    try:
+        return 2 * precision * recall / (precision + recall)
+    except ZeroDivisionError:
+        return 0
+
+
 def compute_metrics(
     result_ds: xr.Dataset, true_ds: xr.Dataset
 ) -> Tuple[float, pd.DataFrame]:
+    if not result_ds.sizes["unit_id"] > 0:
+        return 0, pd.DataFrame()
     A = result_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
     A_true = (
         true_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
@@ -87,12 +98,7 @@ def compute_metrics(
     cent = centroid(A)
     cent_true = centroid(A_true)
     mapping = compute_mapping(cent_true, cent, 3)
-    precision = len(mapping) / len(cent)
-    recall = len(mapping) / len(cent_true)
-    try:
-        f1 = 2 * precision * recall / (precision + recall)
-    except ZeroDivisionError:
-        f1 = 0
+    f1 = compute_f1(len(mapping), len(cent_true), len(cent))
     Am = (
         A.sel(unit_id=mapping["uidB"].values)
         .chunk({"height": -1, "width": -1, "unit_id": "auto"})
