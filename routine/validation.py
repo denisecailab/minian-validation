@@ -51,18 +51,26 @@ def compute_jac(A1: xr.DataArray, A2: xr.DataArray) -> np.ndarray:
     return np.divide(inter, union, out=np.zeros_like(inter), where=union != 0)
 
 
-def compute_cos(x1: xr.DataArray, x2: xr.DataArray, centered=True) -> np.ndarray:
+def compute_cos(
+    x1: xr.DataArray, x2: xr.DataArray, use_sps=False, centered=True
+) -> np.ndarray:
     assert x1.dims == x2.dims
     assert x1.sizes["unit_id"] == x2.sizes["unit_id"]
     axes = tuple(np.arange(1, len(x1.dims)))
-    x1 = sparse.COO(x1.transpose("unit_id", ...).values)
-    x2 = sparse.COO(x2.transpose("unit_id", ...).values)
+    x1 = x1.transpose("unit_id", ...).data
+    x2 = x2.transpose("unit_id", ...).data
+    if use_sps:
+        x1 = x1.map_blocks(sparse.COO)
+        x1 = x2.map_blocks(sparse.COO)
     if centered:
         x1 = x1 - x1.mean(axis=axes, keepdims=True)
         x2 = x2 - x2.mean(axis=axes, keepdims=True)
-    return (x1 * x2).sum(axis=axes).todense() / np.sqrt(
-        (x1 ** 2).sum(axis=axes) * (x2 ** 2).sum(axis=axes)
-    ).todense()
+    num = (x1 * x2).sum(axis=axes)
+    dem = np.sqrt((x1 ** 2).sum(axis=axes) * (x2 ** 2).sum(axis=axes))
+    if use_sps:
+        num = num.map_blocks(lambda a: a.todense())
+        dem = dem.map_blocks(lambda a: a.todense())
+    return num / dem
 
 
 def compute_f1(Nmap, Ntrue, Nobs):
@@ -77,54 +85,42 @@ def compute_f1(Nmap, Ntrue, Nobs):
 def compute_metrics(
     result_ds: xr.Dataset, true_ds: xr.Dataset
 ) -> Tuple[float, pd.DataFrame]:
+    chk_A = {"height": -1, "width": -1, "unit_id": 30}
+    chk_S = {"frame": -1, "unit_id": 30}
     if not result_ds.sizes["unit_id"] > 0:
         return 0, pd.DataFrame()
-    A = result_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
-    A_true = (
-        true_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
-    )
+    A = result_ds["A"].compute().chunk(chk_A)
+    A_true = true_ds["A"].compute().chunk(chk_A)
     sumim = A.max("unit_id").compute().transpose("height", "width").values
     sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
     sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
-    A = xr.apply_ufunc(
-        shift_perframe,
-        A,
-        input_core_dims=[["height", "width"]],
-        output_core_dims=[["height", "width"]],
-        vectorize=True,
-        kwargs={"sh": sh, "fill": 0},
-        dask="parallelized",
-    ).persist()
+    A = (
+        xr.apply_ufunc(
+            shift_perframe,
+            A,
+            input_core_dims=[["height", "width"]],
+            output_core_dims=[["height", "width"]],
+            vectorize=True,
+            kwargs={"sh": sh, "fill": 0},
+            dask="parallelized",
+        )
+        .compute()
+        .chunk(chk_A)
+    )
     cent = centroid(A)
     cent_true = centroid(A_true)
     mapping = compute_mapping(cent_true, cent, 3)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
-    Am = (
-        A.sel(unit_id=mapping["uidB"].values)
-        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
-        .persist()
-    )
-    Am_true = (
-        A_true.sel(unit_id=mapping["uidA"].values)
-        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
-        .persist()
-    )
-    S = (
-        result_ds["S"]
-        .load()
-        .sel(unit_id=mapping["uidB"].values)
-        .chunk({"frame": -1, "unit_id": "auto"})
-        .persist()
-    )
+    Am = A.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_A)
+    Am_true = A_true.compute().sel(unit_id=mapping["uidA"].values).chunk(chk_A)
+    S = result_ds["S"].compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
     S_true = (
         true_ds["S"]
-        .load()
+        .compute()
         .sel(unit_id=mapping["uidA"].values)
         .transpose("unit_id", "frame")
-        .chunk({"frame": -1, "unit_id": "auto"})
-        .persist()
+        .chunk(chk_S)
     )
-    mapping["jac"] = compute_jac(Am_true, Am)
     mapping["Acorr"] = compute_cos(Am_true, Am)
     mapping["Scorr"] = compute_cos(S, S_true)
     return f1, mapping

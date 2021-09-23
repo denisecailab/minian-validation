@@ -25,7 +25,7 @@ if __name__ == "__main__":
         }
     )
     out_path = "data/simulated/validation"
-    sig_ls = [0.2, 0.6, 1, 1.4, 1.8]
+    sig_ls = [0.6, 1, 1.4, 1.8]
     ncell_ls = [100, 300, 500]
 
     os.makedirs(out_path, exist_ok=True)

@@ -41,7 +41,7 @@ MINIAN_PARAMS = {
         "max_wnd": 10,
         "diff_thres": 5,
     },
-    "pnr_refine": {"noise_freq": 0.2, "thres": 1},
+    "pnr_refine": {"noise_freq": 0.2, "thres": 1.5},
     # "ks_refine": {"sig": 0.05},
     "seeds_merge": {"thres_dist": 3, "thres_corr": 0.9, "noise_freq": 0.2},
     "initialize": {"thres_corr": 0.8, "wnd": 10, "noise_freq": 0.2},
@@ -55,7 +55,7 @@ MINIAN_PARAMS = {
     },
     "first_temporal": {
         "noise_freq": 0.2,
-        "sparse_penal": 0.2,
+        "sparse_penal": 0.1,
         "p": 1,
         "add_lag": 20,
         "jac_thres": 0.2,
