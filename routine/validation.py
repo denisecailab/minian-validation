@@ -85,54 +85,42 @@ def compute_f1(Nmap, Ntrue, Nobs):
 def compute_metrics(
     result_ds: xr.Dataset, true_ds: xr.Dataset
 ) -> Tuple[float, pd.DataFrame]:
+    chk_A = {"height": -1, "width": -1, "unit_id": 30}
+    chk_S = {"frame": -1, "unit_id": 30}
     if not result_ds.sizes["unit_id"] > 0:
         return 0, pd.DataFrame()
-    A = result_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
-    A_true = (
-        true_ds["A"].chunk({"height": -1, "width": -1, "unit_id": "auto"}).persist()
-    )
+    A = result_ds["A"].compute().chunk(chk_A)
+    A_true = true_ds["A"].compute().chunk(chk_A)
     sumim = A.max("unit_id").compute().transpose("height", "width").values
     sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
     sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
-    A = xr.apply_ufunc(
-        shift_perframe,
-        A,
-        input_core_dims=[["height", "width"]],
-        output_core_dims=[["height", "width"]],
-        vectorize=True,
-        kwargs={"sh": sh, "fill": 0},
-        dask="parallelized",
-    ).persist()
+    A = (
+        xr.apply_ufunc(
+            shift_perframe,
+            A,
+            input_core_dims=[["height", "width"]],
+            output_core_dims=[["height", "width"]],
+            vectorize=True,
+            kwargs={"sh": sh, "fill": 0},
+            dask="parallelized",
+        )
+        .compute()
+        .chunk(chk_A)
+    )
     cent = centroid(A)
     cent_true = centroid(A_true)
     mapping = compute_mapping(cent_true, cent, 3)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
-    Am = (
-        A.sel(unit_id=mapping["uidB"].values)
-        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
-        .persist()
-    )
-    Am_true = (
-        A_true.sel(unit_id=mapping["uidA"].values)
-        .chunk({"height": -1, "width": -1, "unit_id": "auto"})
-        .persist()
-    )
-    S = (
-        result_ds["S"]
-        .load()
-        .sel(unit_id=mapping["uidB"].values)
-        .chunk({"frame": -1, "unit_id": "auto"})
-        .persist()
-    )
+    Am = A.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_A)
+    Am_true = A_true.compute().sel(unit_id=mapping["uidA"].values).chunk(chk_A)
+    S = result_ds["S"].compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
     S_true = (
         true_ds["S"]
-        .load()
+        .compute()
         .sel(unit_id=mapping["uidA"].values)
         .transpose("unit_id", "frame")
-        .chunk({"frame": -1, "unit_id": "auto"})
-        .persist()
+        .chunk(chk_S)
     )
-    mapping["jac"] = compute_jac(Am_true, Am)
     mapping["Acorr"] = compute_cos(Am_true, Am)
     mapping["Scorr"] = compute_cos(S, S_true)
     return f1, mapping
