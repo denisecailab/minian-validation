@@ -63,16 +63,16 @@ for root, dirs, files in os.walk(IN_SIM_DPATH):
 f1_df = pd.concat(f1_ls, ignore_index=True)
 mapping_df = pd.concat(mapping_ls, ignore_index=True)
 f1_df.astype({"ncell": int, "sig": float}).to_feather(
-    os.path.join(OUT_PATH, "f1.feather")
+    os.path.join(OUT_PATH, "f1_simulated.feather")
 )
 mapping_df.astype({"ncell": int, "sig": float}).to_feather(
-    os.path.join(OUT_PATH, "mapping.feather")
+    os.path.join(OUT_PATH, "mapping_simulated.feather")
 )
 
 #%% plot simulated results
-metrics = ["jac", "Acorr", "Scorr"]
+metrics = ["Acorr", "Scorr"]
 id_vars = ["ncell", "sig", "pipeline"]
-mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping.feather"))
+mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_simulated.feather"))
 metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics]
     .median()
@@ -83,7 +83,7 @@ metric_df = {
     .reset_index()
     .sort_values(["sig", "ncell"]),
 }
-f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1.feather"))
+f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_simulated.feather"))
 for mtype, mdf in metric_df.items():
     df = mdf.merge(f1_df, on=id_vars, validate="one_to_one").melt(id_vars=id_vars)
     fig = px.line(
@@ -98,5 +98,5 @@ for mtype, mdf in metric_df.items():
     nrow, _ = fig._get_subplot_rows_columns()
     for r in nrow:
         fig.update_yaxes(matches="y" + str(r) * 3, row=r)
-    # fig.update_yaxes(range=[0.8, 1.1])
+    fig.update_yaxes(range=[0.8, 1.1])
     fig.write_image(os.path.join(FIG_PATH, "simulated-{}.pdf".format(mtype)))
