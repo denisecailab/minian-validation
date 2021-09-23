@@ -40,12 +40,13 @@ def caiman_process(
     mc_dict,
     params_dict,
     quality_dict,
-    profiler: PipelineProfiler,
+    profiler: PipelineProfiler = None,
     vpat: str = r".*\.avi",
 ):
     # setup
-    profiler.change_phase("setup")
-    profiler.start()
+    if profiler is not None:
+        profiler.change_phase("setup")
+        profiler.start()
     try:
         cm.stop_server()
     except:
@@ -65,7 +66,8 @@ def caiman_process(
     mc_dict["fnames"] = fnames
     opts = params.CNMFParams(params_dict=mc_dict)
     # do motion correction rigid
-    profiler.change_phase("motion-correction")
+    if profiler is not None:
+        profiler.change_phase("motion-correction")
     pw_rigid = mc_dict["pw_rigid"]
     mc = MotionCorrect(fnames, dview=dview, **opts.get_group("motion"))
     mc.motion_correct(save_movie=True)
@@ -88,7 +90,8 @@ def caiman_process(
         fname_mc, base_name="memmap_", order="C", border_to_0=bord_px
     )
     # load memory mappable file
-    profiler.change_phase("initialization")
+    if profiler is not None:
+        profiler.change_phase("initialization")
     Yr, dims, T = cm.load_memmap(fname_new)
     images = Yr.T.reshape((T,) + dims, order="F")
     # initialization
@@ -102,11 +105,13 @@ def caiman_process(
     # )
     # inspect_correlation_pnr(cn_filter, pnr)
     # cnmf
-    profiler.change_phase("cnmf")
+    if profiler is not None:
+        profiler.change_phase("cnmf")
     cnm = cnmf.CNMF(n_processes=n_processes, dview=dview, Ain=Ain, params=opts)
     cnm.fit(images)
     # post-hoc curating
-    profiler.change_phase("post-hoc")
+    if profiler is not None:
+        profiler.change_phase("post-hoc")
     cnm.params.set("quality", quality_dict)
     cnm.estimates.evaluate_components(images, cnm.params, dview=dview)
     print(" ***** ")
@@ -115,7 +120,8 @@ def caiman_process(
     save_caiman(cnm.estimates, outpath)
     # terminate
     cm.stop_server(dview=dview)
-    profiler.terminate()
+    if profiler is not None:
+        profiler.terminate()
     files = [f for f in os.listdir(dpath) if f.endswith(".mmap")]
     for f in files:
         os.remove(os.path.join(dpath, f))
