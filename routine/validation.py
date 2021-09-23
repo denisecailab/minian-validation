@@ -51,18 +51,26 @@ def compute_jac(A1: xr.DataArray, A2: xr.DataArray) -> np.ndarray:
     return np.divide(inter, union, out=np.zeros_like(inter), where=union != 0)
 
 
-def compute_cos(x1: xr.DataArray, x2: xr.DataArray, centered=True) -> np.ndarray:
+def compute_cos(
+    x1: xr.DataArray, x2: xr.DataArray, use_sps=False, centered=True
+) -> np.ndarray:
     assert x1.dims == x2.dims
     assert x1.sizes["unit_id"] == x2.sizes["unit_id"]
     axes = tuple(np.arange(1, len(x1.dims)))
-    x1 = sparse.COO(x1.transpose("unit_id", ...).values)
-    x2 = sparse.COO(x2.transpose("unit_id", ...).values)
+    x1 = x1.transpose("unit_id", ...).data
+    x2 = x2.transpose("unit_id", ...).data
+    if use_sps:
+        x1 = x1.map_blocks(sparse.COO)
+        x1 = x2.map_blocks(sparse.COO)
     if centered:
         x1 = x1 - x1.mean(axis=axes, keepdims=True)
         x2 = x2 - x2.mean(axis=axes, keepdims=True)
-    return (x1 * x2).sum(axis=axes).todense() / np.sqrt(
-        (x1 ** 2).sum(axis=axes) * (x2 ** 2).sum(axis=axes)
-    ).todense()
+    num = (x1 * x2).sum(axis=axes)
+    dem = np.sqrt((x1 ** 2).sum(axis=axes) * (x2 ** 2).sum(axis=axes))
+    if use_sps:
+        num = num.map_blocks(lambda a: a.todense())
+        dem = dem.map_blocks(lambda a: a.todense())
+    return num / dem
 
 
 def compute_f1(Nmap, Ntrue, Nobs):
