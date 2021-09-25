@@ -147,6 +147,7 @@ for mtype, mdf in metric_df.items():
         margin_titles=True,
         legend_out=True,
         aspect=ASPECT,
+        row_order=["f1", "Acorr", "Scorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
