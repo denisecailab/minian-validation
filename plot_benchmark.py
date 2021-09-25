@@ -87,6 +87,7 @@ sns.set(
 id_vars = ["pipeline", "nfm", "ncell"]
 val_vars = ["duration", "max_mem"]
 metric_dict = {"duration": "Running Time (minutes)", "max_mem": "Peak Memory (MB)"}
+pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
 
 
 def rename_axis(data, **kwargs):
@@ -100,6 +101,7 @@ prof_agg = (
     .reset_index()
     .astype({"ncell": int, "nfm": int})
     .sort_values(["pipeline", "ncell", "nfm"])
+    .replace({"pipeline": pipeline_dict})
 )
 prof_agg["duration"] = prof_agg["duration"] / 60
 prof_agg = prof_agg.melt(id_vars=id_vars)
