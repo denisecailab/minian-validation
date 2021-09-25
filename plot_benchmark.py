@@ -58,7 +58,7 @@ MEDIUM_SIZE = 10
 BIG_SIZE = 11
 sns.set(
     rc={
-        "figure.figsize": (5.31, 5.31 / ASPECT),
+        "figure.figsize": (3.98, 3.98 / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -128,3 +128,4 @@ fig.add_legend()
 fig.set_xlabels("Frame Number")
 fig.set_titles(row_template="", col_template="{col_name} cells")
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.svg"))
+fig.savefig(os.path.join(FIG_BENCH_ALL, "master.png"))

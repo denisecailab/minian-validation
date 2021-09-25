@@ -79,7 +79,7 @@ MEDIUM_SIZE = 10
 BIG_SIZE = 11
 sns.set(
     rc={
-        "figure.figsize": (5.31, 5.31 / ASPECT),
+        "figure.figsize": (3.98, 3.98 / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -164,3 +164,4 @@ for mtype, mdf in metric_df.items():
     fig.set_xlabels("signal level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
+    fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
