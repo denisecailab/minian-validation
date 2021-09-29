@@ -6,12 +6,15 @@ env: environments/caiman.yml
 
 import logging
 import os
+import shutil
 import warnings
 
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/real"
+DPATH = "./data/raw"
+OUTPATH = "./data/real"
+CAIMAN_INT_PATH = "~/var/minian-validation/intermediate-cm"
 
 MC_DICT = {
     "fr": 30,  # movie frame rate
@@ -58,27 +61,27 @@ QUALITY_DICT = {
 
 if __name__ == "__main__":
     DPATH = os.path.abspath(DPATH)
+    CAIMAN_INT_PATH = os.path.abspath(os.path.expanduser(CAIMAN_INT_PATH))
     logging.basicConfig(force=True)
     logging.getLogger().setLevel(logging.ERROR)
     warnings.filterwarnings("ignore")
+    for root, dirs, files in os.walk(DPATH, followlinks=True):
         avifiles = list(filter(lambda f: f.endswith(".avi"), files))
         if not avifiles:
             continue
-        profiler = PipelineProfiler(
-            proc=os.getpid(),
-            interval=0.2,
-            outpath=os.path.join(root, "caiman_prof.csv"),
-            nchild=20,
-        )
+        shutil.rmtree(CAIMAN_INT_PATH, ignore_errors=True)
+        os.makedirs(CAIMAN_INT_PATH, exist_ok=True)
+        outpath = os.path.join(OUTPATH, os.path.relpath(root, DPATH))
         try:
             caiman_process(
                 root,
-                root,
+                outpath,
+                CAIMAN_INT_PATH,
                 16,
                 MC_DICT,
                 PARAM_DICT,
                 QUALITY_DICT,
-                profiler,
+                copy_to_int=True,
             )
             print("caiman sucess: {}".format(root))
         except Exception as e:
