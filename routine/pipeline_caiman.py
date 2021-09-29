@@ -83,6 +83,7 @@ def caiman_process(
     pw_rigid = mc_dict["pw_rigid"]
     mc = MotionCorrect(fnames, dview=dview, **opts.get_group("motion"))
     mc.motion_correct(save_movie=True)
+    print("mc done")
     fname_mc = mc.fname_tot_els if pw_rigid else mc.fname_tot_rig
     if pw_rigid:
         bord_px = np.ceil(
@@ -101,6 +102,7 @@ def caiman_process(
     fname_new = cm.save_memmap(
         fname_mc, base_name="memmap_", order="C", border_to_0=bord_px
     )
+    print("mmapping done")
     # load memory mappable file
     if profiler is not None:
         profiler.change_phase("initialization")
@@ -117,10 +119,12 @@ def caiman_process(
     # )
     # inspect_correlation_pnr(cn_filter, pnr)
     # cnmf
+    print("initialization done")
     if profiler is not None:
         profiler.change_phase("cnmf")
     cnm = cnmf.CNMF(n_processes=n_processes, dview=dview, Ain=Ain, params=opts)
     cnm.fit(images)
+    print("cnmf done")
     # post-hoc curating
     if profiler is not None:
         profiler.change_phase("post-hoc")
