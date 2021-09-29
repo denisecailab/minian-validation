@@ -11,12 +11,13 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import seaborn as sns
 import xarray as xr
+from matplotlib.ticker import StrMethodFormatter
 
 from routine.minian_functions import open_minian
 from routine.validation import compute_metrics
+from routine.plotting import ax_tick, format_tick
 
 IN_SIM_DPATH = "./data/simulated/validation"
 IN_REAL_DPATH = "./data/real"
@@ -73,9 +74,57 @@ mapping_df.astype({"ncell": int, "sig": float}).to_feather(
 )
 
 #%% plot simulated results
+ASPECT = 1.2
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
+sns.set(
+    rc={
+        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.dpi": 500,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Helvetica"],
+        "font.size": MEDIUM_SIZE,
+        "axes.titlesize": MEDIUM_SIZE,
+        "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
+        "xtick.labelsize": SMALL_SIZE,
+        "ytick.labelsize": SMALL_SIZE,
+        "legend.fontsize": MEDIUM_SIZE,
+        "figure.titlesize": BIG_SIZE,
+        "legend.edgecolor": "gray",
+        # "axes.linewidth": 0.4,
+        # "axes.facecolor": "white",
+        "xtick.major.size": 2,
+        "xtick.major.width": 0.4,
+        "xtick.minor.visible": True,
+        "xtick.minor.size": 1,
+        "xtick.minor.width": 0.4,
+        "ytick.major.size": 2,
+        "ytick.major.width": 0.4,
+        "ytick.minor.visible": True,
+        "ytick.minor.size": 1,
+        "ytick.minor.width": 0.4,
+    }
+)
+# sns.set_style("ticks")
 metrics = ["Acorr", "Scorr"]
 id_vars = ["ncell", "sig", "pipeline"]
-mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_simulated.feather"))
+metric_dict = {
+    "Acorr": "Spatial Correlation",
+    "Scorr": "Temporal Correlation",
+    "f1": "F1 Score",
+}
+pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+
+
+def rename_axis(data, **kwargs):
+    ax = plt.gca()
+    ax.set_ylabel(metric_dict[data.iloc[0]["variable"]])
+
+
+mapping_df = pd.read_feather(
+    os.path.join(OUT_PATH, "mapping_simulated.feather")
+).replace({"pipeline": pipeline_dict})
 metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics]
     .median()
@@ -86,23 +135,38 @@ metric_df = {
     .reset_index()
     .sort_values(["sig", "ncell"]),
 }
-f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_simulated.feather"))
+f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_simulated.feather")).replace(
+    {"pipeline": pipeline_dict}
+)
+
 for mtype, mdf in metric_df.items():
     df = mdf.merge(f1_df, on=id_vars, validate="one_to_one").melt(id_vars=id_vars)
-    fig = px.line(
+    fig = sns.FacetGrid(
         df,
+        row="variable",
+        col="ncell",
+        margin_titles=True,
+        legend_out=True,
+        aspect=ASPECT,
+        row_order=["f1", "Acorr", "Scorr"],
+    )
+    fig.map_dataframe(
+        sns.lineplot,
         x="sig",
         y="value",
-        facet_col="ncell",
-        facet_row="variable",
-        color="pipeline",
+        hue="pipeline",
+        style="pipeline",
         markers=True,
+        legend="full",
     )
-    nrow, _ = fig._get_subplot_rows_columns()
-    for r in nrow:
-        fig.update_yaxes(matches="y" + str(r) * 3, row=r)
-    fig.update_yaxes(range=[0.8, 1.1])
-    fig.write_image(os.path.join(FIG_PATH, "simulated-{}.pdf".format(mtype)))
+    fig.map_dataframe(rename_axis)
+    fig.map_dataframe(ax_tick, x_var="sig")
+    fig.map(format_tick, y_formatter=StrMethodFormatter("{x:.2f}"))
+    fig.add_legend()
+    fig.set_xlabels("signal level")
+    fig.set_titles(row_template="", col_template="{col_name} cells")
+    fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
+    fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
 
 #%% compute metrics on real datasets
 f1_ls = []
