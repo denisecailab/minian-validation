@@ -20,6 +20,7 @@ Demo is also available as a jupyter notebook (see demo_pipeline_cnmfE.ipynb)
 
 import os
 import re
+from shutil import copyfile
 
 import caiman as cm
 import matplotlib.pyplot as plt
@@ -36,12 +37,14 @@ from .profiling import PipelineProfiler
 def caiman_process(
     dpath,
     outpath,
+    intpath,
     n_processes,
     mc_dict,
     params_dict,
     quality_dict,
     profiler: PipelineProfiler = None,
     vpat: str = r".*\.avi",
+    copy_to_int=False,
 ):
     # setup
     if profiler is not None:
@@ -63,6 +66,15 @@ def caiman_process(
     fnames = natsorted(
         [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
     )
+    fnames = fnames[:10]
+    if copy_to_int:
+        fnames_new = []
+        for f in fnames:
+            fnew = os.path.join(intpath, os.path.relpath(f, dpath))
+            copyfile(f, fnew)
+            fnames_new.append(fnew)
+        fnames = fnames_new
+        print("done copying data")
     mc_dict["fnames"] = fnames
     opts = params.CNMFParams(params_dict=mc_dict)
     # do motion correction rigid
