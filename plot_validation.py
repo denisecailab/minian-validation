@@ -8,15 +8,18 @@ env: environments/generic.yml
 import os
 import re
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import seaborn as sns
 import xarray as xr
 
 from routine.minian_functions import open_minian
 from routine.validation import compute_metrics
 
 IN_SIM_DPATH = "./data/simulated/validation"
+IN_REAL_DPATH = "./data/real"
 IN_CAIMAN_RESULT_PAT = "caiman_result.nc"
 IN_MINIAN_RESULT_PAT = "minian_result"
 OUT_PATH = "./store/validation"
@@ -100,3 +103,145 @@ for mtype, mdf in metric_df.items():
         fig.update_yaxes(matches="y" + str(r) * 3, row=r)
     fig.update_yaxes(range=[0.8, 1.1])
     fig.write_image(os.path.join(FIG_PATH, "simulated-{}.pdf".format(mtype)))
+
+#%% compute metrics on real datasets
+f1_ls = []
+mapping_ls = []
+for root, dirs, files in os.walk(IN_REAL_DPATH):
+    try:
+        minian_ds = list(filter(lambda f: re.search(IN_MINIAN_RESULT_PAT, f), dirs))[0]
+        caiman_ds = list(filter(lambda f: re.search(IN_CAIMAN_RESULT_PAT, f), files))[0]
+        truth_ds = list(filter(lambda f: re.search(r"^truth$", f), dirs))[0]
+    except IndexError:
+        continue
+    minian_ds = open_minian(os.path.join(root, minian_ds))
+    caiman_ds = xr.open_dataset(os.path.join(root, caiman_ds)).transpose(
+        "unit_id", "frame", "height", "width"
+    )
+    truth_ds = open_minian(os.path.join(root, truth_ds))
+    f1_DM = compute_metrics(A=truth_ds["A_DM"], A_true=truth_ds["A_true"], f1_only=True)
+    f1_TF = compute_metrics(A=truth_ds["A_TF"], A_true=truth_ds["A_true"], f1_only=True)
+    f1_minian, mapping_minian = compute_metrics(
+        A=minian_ds["A"],
+        A_true=truth_ds["A_true"],
+        S=minian_ds["C"].sel(frame=slice(0, 9999)),
+        S_true=truth_ds["C_true"].sel(frame=slice(0, 9999)),
+    )
+    f1_caiman, mapping_caiman = compute_metrics(
+        A=caiman_ds["A"],
+        A_true=truth_ds["A_true"],
+        S=caiman_ds["C"].sel(frame=slice(0, 9999)),
+        S_true=truth_ds["C_true"].sel(frame=slice(0, 9999)),
+    )
+    anm = root.split(os.sep)[-1]
+    mapping_minian["animal"] = anm
+    mapping_caiman["animal"] = anm
+    mapping_minian["source"] = "minian"
+    mapping_caiman["source"] = "caiman"
+    f1_df = pd.DataFrame(
+        {
+            "source": ["minian", "caiman", "DM", "TF"],
+            "f1": [f1_minian, f1_caiman, f1_DM, f1_TF],
+            "animal": anm,
+        }
+    )
+    f1_ls.append(f1_df)
+    mapping_ls.extend([mapping_caiman, mapping_minian])
+    print(root)
+f1_df = pd.concat(f1_ls, ignore_index=True)
+mapping_df = pd.concat(mapping_ls, ignore_index=True)
+f1_df.to_feather(os.path.join(OUT_PATH, "f1_real.feather"))
+mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
+
+#%% plot real results
+ASPECT = 1
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
+sns.set(
+    rc={
+        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.dpi": 500,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Helvetica"],
+        "font.size": MEDIUM_SIZE,
+        "axes.titlesize": MEDIUM_SIZE,
+        "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
+        "xtick.labelsize": SMALL_SIZE,
+        "ytick.labelsize": SMALL_SIZE,
+        "legend.fontsize": MEDIUM_SIZE,
+        "figure.titlesize": BIG_SIZE,
+        "legend.edgecolor": "gray",
+        # "axes.linewidth": 0.4,
+        # "axes.facecolor": "white",
+        "xtick.major.size": 2,
+        "xtick.major.width": 0.4,
+        "xtick.minor.visible": True,
+        "xtick.minor.size": 1,
+        "xtick.minor.width": 0.4,
+        "ytick.major.size": 2,
+        "ytick.major.width": 0.4,
+        "ytick.minor.visible": True,
+        "ytick.minor.size": 1,
+        "ytick.minor.width": 0.4,
+    }
+)
+# sns.set_style("ticks")
+metrics = ["Acorr", "Scorr"]
+id_vars = ["animal", "source"]
+metric_dict = {
+    "Acorr": "Spatial Correlation",
+    "Scorr": "Temporal Correlation",
+    "f1": "F1 Score",
+}
+pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+ylim_dict = {"Acorr": (0.6, 1), "Scorr": (0.6, 1), "f1": (0.1, 1)}
+
+
+def set_yaxis(data, set_range=False, **kwargs):
+    ax = plt.gca()
+    var = data.iloc[0]["variable"]
+    ax.set_ylabel(metric_dict[var])
+    if set_range:
+        ax.set_ylim(ylim_dict[var])
+
+
+mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
+    {"source": pipeline_dict}
+)
+metric_df = {
+    "median": mapping_df.groupby(id_vars)[metrics].median().reset_index(),
+    "worst": mapping_df.groupby(id_vars)[metrics].min().reset_index(),
+}
+f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
+    {"source": pipeline_dict}
+)
+for mtype, mdf in metric_df.items():
+    df = f1_df.merge(mdf, on=id_vars, how="left").melt(id_vars=id_vars).dropna()
+    fig = sns.FacetGrid(
+        df,
+        col="variable",
+        legend_out=True,
+        aspect=ASPECT,
+        col_order=["f1", "Acorr", "Scorr"],
+        sharey=False,
+        sharex=False,
+    )
+    fig.map_dataframe(
+        sns.barplot,
+        x="source",
+        y="value",
+        capsize=0.2,
+        facecolor=(1, 1, 1, 0),
+        edgecolor="gray",
+        hatch="/",
+    )
+    fig.map_dataframe(sns.swarmplot, x="source", y="value", size=5, alpha=0.9)
+    if mtype == "median":
+        fig.map_dataframe(set_yaxis, set_range=True)
+    else:
+        fig.map_dataframe(set_yaxis)
+    fig.set_xlabels("Source")
+    fig.set_titles(col_template="")
+    fig.savefig(os.path.join(FIG_PATH, "real-{}.svg".format(mtype)))
+    fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
