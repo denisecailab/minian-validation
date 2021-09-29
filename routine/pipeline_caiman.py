@@ -20,6 +20,7 @@ Demo is also available as a jupyter notebook (see demo_pipeline_cnmfE.ipynb)
 
 import os
 import re
+from shutil import copyfile
 
 import caiman as cm
 import matplotlib.pyplot as plt
@@ -36,12 +37,14 @@ from .profiling import PipelineProfiler
 def caiman_process(
     dpath,
     outpath,
+    intpath,
     n_processes,
     mc_dict,
     params_dict,
     quality_dict,
     profiler: PipelineProfiler = None,
     vpat: str = r".*\.avi",
+    copy_to_int=False,
 ):
     # setup
     if profiler is not None:
@@ -63,6 +66,15 @@ def caiman_process(
     fnames = natsorted(
         [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
     )
+    fnames = fnames[:10]
+    if copy_to_int:
+        fnames_new = []
+        for f in fnames:
+            fnew = os.path.join(intpath, os.path.relpath(f, dpath))
+            copyfile(f, fnew)
+            fnames_new.append(fnew)
+        fnames = fnames_new
+        print("done copying data")
     mc_dict["fnames"] = fnames
     opts = params.CNMFParams(params_dict=mc_dict)
     # do motion correction rigid
@@ -71,6 +83,7 @@ def caiman_process(
     pw_rigid = mc_dict["pw_rigid"]
     mc = MotionCorrect(fnames, dview=dview, **opts.get_group("motion"))
     mc.motion_correct(save_movie=True)
+    print("mc done")
     fname_mc = mc.fname_tot_els if pw_rigid else mc.fname_tot_rig
     if pw_rigid:
         bord_px = np.ceil(
@@ -89,6 +102,7 @@ def caiman_process(
     fname_new = cm.save_memmap(
         fname_mc, base_name="memmap_", order="C", border_to_0=bord_px
     )
+    print("mmapping done")
     # load memory mappable file
     if profiler is not None:
         profiler.change_phase("initialization")
@@ -105,10 +119,12 @@ def caiman_process(
     # )
     # inspect_correlation_pnr(cn_filter, pnr)
     # cnmf
+    print("initialization done")
     if profiler is not None:
         profiler.change_phase("cnmf")
     cnm = cnmf.CNMF(n_processes=n_processes, dview=dview, Ain=Ain, params=opts)
     cnm.fit(images)
+    print("cnmf done")
     # post-hoc curating
     if profiler is not None:
         profiler.change_phase("post-hoc")

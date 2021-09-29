@@ -83,14 +83,22 @@ def compute_f1(Nmap, Ntrue, Nobs):
 
 
 def compute_metrics(
-    result_ds: xr.Dataset, true_ds: xr.Dataset
+    result_ds: xr.Dataset = None,
+    true_ds: xr.Dataset = None,
+    A: xr.DataArray = None,
+    A_true: xr.DataArray = None,
+    S: xr.DataArray = None,
+    S_true: xr.DataArray = None,
+    f1_only=False,
 ) -> Tuple[float, pd.DataFrame]:
     chk_A = {"height": -1, "width": -1, "unit_id": 30}
     chk_S = {"frame": -1, "unit_id": 30}
-    if not result_ds.sizes["unit_id"] > 0:
-        return 0, pd.DataFrame()
-    A = result_ds["A"].compute().chunk(chk_A)
-    A_true = true_ds["A"].compute().chunk(chk_A)
+    if A is None:
+        A = result_ds["A"]
+    if A_true is None:
+        A_true = true_ds["A"]
+    A = A.compute().chunk(chk_A)
+    A_true = A_true.compute().chunk(chk_A)
     sumim = A.max("unit_id").compute().transpose("height", "width").values
     sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
     sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
@@ -111,12 +119,17 @@ def compute_metrics(
     cent_true = centroid(A_true)
     mapping = compute_mapping(cent_true, cent, 3)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
+    if f1_only:
+        return f1
     Am = A.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_A)
     Am_true = A_true.compute().sel(unit_id=mapping["uidA"].values).chunk(chk_A)
-    S = result_ds["S"].compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
+    if S is None:
+        S = result_ds["S"]
+    if S_true is None:
+        S_true = true_ds["S"]
+    S = S.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
     S_true = (
-        true_ds["S"]
-        .compute()
+        S_true.compute()
         .sel(unit_id=mapping["uidA"].values)
         .transpose("unit_id", "frame")
         .chunk(chk_S)
