@@ -4,7 +4,9 @@ script to run caiman pipeline on datasets
 env: environments/caiman.yml
 """
 
+import logging
 import os
+import warnings
 
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
@@ -56,7 +58,9 @@ QUALITY_DICT = {
 
 if __name__ == "__main__":
     DPATH = os.path.abspath(DPATH)
-    for root, dirs, files in os.walk(DPATH):
+    logging.basicConfig(force=True)
+    logging.getLogger().setLevel(logging.ERROR)
+    warnings.filterwarnings("ignore")
         avifiles = list(filter(lambda f: f.endswith(".avi"), files))
         if not avifiles:
             continue
