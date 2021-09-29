@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import warnings
+import traceback
 
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
@@ -92,5 +93,5 @@ if __name__ == "__main__":
             print("caiman sucess: {}".format(root))
         except Exception as e:
             print("caiman failed: {}".format(root))
-            with open(os.path.join(root, "caiman_error"), "w") as txtf:
-                txtf.write(str(e))
+            with open(os.path.join(outpath, "caiman_error"), "w") as txtf:
+                traceback.print_exc(file=txtf)
