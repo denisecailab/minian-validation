@@ -72,6 +72,12 @@ if __name__ == "__main__":
         shutil.rmtree(CAIMAN_INT_PATH, ignore_errors=True)
         os.makedirs(CAIMAN_INT_PATH, exist_ok=True)
         outpath = os.path.join(OUTPATH, os.path.relpath(root, DPATH))
+        # profiler = PipelineProfiler(
+        #     proc=os.getpid(),
+        #     interval=0.2,
+        #     outpath=os.path.join(outpath, "caiman_prof.csv"),
+        #     nchild=20,
+        # )
         try:
             caiman_process(
                 root,
