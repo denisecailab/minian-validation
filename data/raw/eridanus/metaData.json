@@ -1,0 +1,12 @@
+{
+    "compression": "GREY",
+    "deviceDirectory": "C:/Users/Tristan/Desktop/data/Will/Will/LinearTrack/Eridanus/2021_08_15/15_15_47/Miniscope",
+    "deviceID": 3,
+    "deviceName": "Miniscope",
+    "deviceType": "Miniscope_V4_BNO",
+    "ewl": 46,
+    "frameRate": "30FPS",
+    "framesPerFile": 1000,
+    "gain": "Low",
+    "led0": 6
+}
