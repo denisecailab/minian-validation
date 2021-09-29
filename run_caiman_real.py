@@ -35,24 +35,24 @@ PARAM_DICT = {
     "gSiz": (41, 41),  # average diameter of a neuron, in general 4*gSig+1
     "merge_thr": 0.7,  # merging threshold, max correlation allowed
     "p": 1,  # order of the autoregressive system
-    "tsub": 1,  # downsampling factor in time for initialization
+    "tsub": 10,  # downsampling factor in time for initialization
     "ssub": 1,  # downsampling factor in space for initialization
-    "rf": 40,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
-    "stride": 20,  # amount of overlap between the patches in pixels
+    "rf": 80,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    "stride": 40,  # amount of overlap between the patches in pixels
     "only_init": True,  # set it to True to run CNMF-E
     "nb": 0,  # number of background components (rank) if positive
     "nb_patch": 0,  # number of background components (rank) per patch if gnb>0
     "method_deconvolution": "oasis",  # could use 'cvxpy' alternatively
     "low_rank_background": None,  # None leaves background of each patch intact
     "update_background_components": True,  # sometimes setting to False improve the results
-    "min_corr": 0.8,  # min peak value from correlation image
-    "min_pnr": 10,  # min peak to noise ration from PNR image
+    "min_corr": 0.95,  # min peak value from correlation image
+    "min_pnr": 20,  # min peak to noise ration from PNR image
     "normalize_init": False,  # just leave as is
     "center_psf": True,  # leave as is for 1 photon
     "ssub_B": 2,  # additional downsampling factor in space for background
     "ring_size_factor": 1.4,  # radius of ring is gSiz*ring_size_factor
     "del_duplicates": True,  # whether to remove duplicates from initialization
-    "memory_efficient": True,
+    # "memory_efficient": True,
 }
 QUALITY_DICT = {
     "min_SNR": 2.5,  # adaptive way to set threshold on the transient size
