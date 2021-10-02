@@ -258,7 +258,7 @@ metric_dict = {
     "Scorr": "Temporal Correlation",
     "f1": "F1 Score",
 }
-pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
 ylim_dict = {"Acorr": (0.6, 1), "Scorr": (0.6, 1), "f1": (0.1, 1)}
 
 
@@ -271,14 +271,14 @@ def set_yaxis(data, set_range=False, **kwargs):
 
 
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
-    {"source": pipeline_dict}
+    {"source": source_dict}
 )
 metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics].median().reset_index(),
     "worst": mapping_df.groupby(id_vars)[metrics].min().reset_index(),
 }
 f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
-    {"source": pipeline_dict}
+    {"source": source_dict}
 )
 for mtype, mdf in metric_df.items():
     df = f1_df.merge(mdf, on=id_vars, how="left").melt(id_vars=id_vars).dropna()
