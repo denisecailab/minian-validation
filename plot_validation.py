@@ -14,6 +14,7 @@ import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib.ticker import StrMethodFormatter
+from statsmodels.formula.api import ols
 
 from routine.minian_functions import open_minian
 from routine.validation import compute_metrics
@@ -309,3 +310,24 @@ for mtype, mdf in metric_df.items():
     fig.set_titles(col_template="")
     fig.savefig(os.path.join(FIG_PATH, "real-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
+
+#%% stats on real validation
+metrics = ["Acorr", "Scorr"]
+id_vars = ["animal", "source"]
+source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
+mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
+    {"source": source_dict}
+)
+metric_df = mapping_df.groupby(id_vars)[metrics].median().reset_index()
+f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
+    {"source": source_dict}
+)
+lm_f1 = ols("f1 ~ source", f1_df).fit()
+lm_A = ols("Acorr ~ source", metric_df).fit()
+lm_S = ols("Scorr ~ source", metric_df).fit()
+print("F1 score")
+print(lm_f1.summary())
+print("Spatial correlation")
+print(lm_A.summary())
+print("Temporal correlation")
+print(lm_S.summary())
