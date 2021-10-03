@@ -14,6 +14,7 @@ import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib.ticker import StrMethodFormatter
+from statsmodels.formula.api import ols
 
 from routine.minian_functions import open_minian
 from routine.validation import compute_metrics
@@ -78,9 +79,10 @@ ASPECT = 1.2
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIG_SIZE = 11
+WIDTH = 3.98
 sns.set(
     rc={
-        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -115,11 +117,15 @@ metric_dict = {
     "f1": "F1 Score",
 }
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+ylim_dict = {"Acorr": (0, 1.1), "Scorr": (0, 1.1), "f1": (0, 1.1)}
 
 
-def rename_axis(data, **kwargs):
+def set_yaxis(data, set_range=False, **kwargs):
     ax = plt.gca()
-    ax.set_ylabel(metric_dict[data.iloc[0]["variable"]])
+    var = data.iloc[0]["variable"]
+    ax.set_ylabel(metric_dict[var])
+    if set_range:
+        ax.set_ylim(ylim_dict[var])
 
 
 mapping_df = pd.read_feather(
@@ -148,6 +154,7 @@ for mtype, mdf in metric_df.items():
         margin_titles=True,
         legend_out=True,
         aspect=ASPECT,
+        height=WIDTH / ASPECT,
         row_order=["f1", "Acorr", "Scorr"],
     )
     fig.map_dataframe(
@@ -155,15 +162,19 @@ for mtype, mdf in metric_df.items():
         x="sig",
         y="value",
         hue="pipeline",
-        style="pipeline",
-        markers=True,
+        hue_order=("Minian", "CaImAn"),
+        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        marker="o",
         legend="full",
     )
-    fig.map_dataframe(rename_axis)
+    if mtype == "median":
+        fig.map_dataframe(set_yaxis, set_range=True)
+    else:
+        fig.map_dataframe(set_yaxis)
     fig.map_dataframe(ax_tick, x_var="sig")
     fig.map(format_tick, y_formatter=StrMethodFormatter("{x:.2f}"))
     fig.add_legend()
-    fig.set_xlabels("signal level")
+    fig.set_xlabels("Signal Level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
@@ -219,12 +230,13 @@ mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 
 #%% plot real results
 ASPECT = 1
+WIDTH = 3.98
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIG_SIZE = 11
 sns.set(
     rc={
-        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -258,7 +270,7 @@ metric_dict = {
     "Scorr": "Temporal Correlation",
     "f1": "F1 Score",
 }
-pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
 ylim_dict = {"Acorr": (0.6, 1), "Scorr": (0.6, 1), "f1": (0.1, 1)}
 
 
@@ -271,14 +283,14 @@ def set_yaxis(data, set_range=False, **kwargs):
 
 
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
-    {"source": pipeline_dict}
+    {"source": source_dict}
 )
 metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics].median().reset_index(),
     "worst": mapping_df.groupby(id_vars)[metrics].min().reset_index(),
 }
 f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
-    {"source": pipeline_dict}
+    {"source": source_dict}
 )
 for mtype, mdf in metric_df.items():
     df = f1_df.merge(mdf, on=id_vars, how="left").melt(id_vars=id_vars).dropna()
@@ -286,6 +298,7 @@ for mtype, mdf in metric_df.items():
         df,
         col="variable",
         legend_out=True,
+        height=WIDTH / ASPECT,
         aspect=ASPECT,
         col_order=["f1", "Acorr", "Scorr"],
         sharey=False,
@@ -296,11 +309,14 @@ for mtype, mdf in metric_df.items():
         x="source",
         y="value",
         capsize=0.2,
-        facecolor=(1, 1, 1, 0),
-        edgecolor="gray",
-        hatch="/",
+        hue="source",
+        hue_order=["Minian", "CaImAn", "Manual"],
+        dodge=False,
+        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
     )
-    fig.map_dataframe(sns.swarmplot, x="source", y="value", size=5, alpha=0.9)
+    fig.map_dataframe(
+        sns.swarmplot, x="source", y="value", size=6, alpha=0.8, color="black"
+    )
     if mtype == "median":
         fig.map_dataframe(set_yaxis, set_range=True)
     else:
@@ -309,3 +325,24 @@ for mtype, mdf in metric_df.items():
     fig.set_titles(col_template="")
     fig.savefig(os.path.join(FIG_PATH, "real-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
+
+#%% stats on real validation
+metrics = ["Acorr", "Scorr"]
+id_vars = ["animal", "source"]
+source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
+mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
+    {"source": source_dict}
+)
+metric_df = mapping_df.groupby(id_vars)[metrics].median().reset_index()
+f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
+    {"source": source_dict}
+)
+lm_f1 = ols("f1 ~ source", f1_df).fit()
+lm_A = ols("Acorr ~ source", metric_df).fit()
+lm_S = ols("Scorr ~ source", metric_df).fit()
+print("F1 score")
+print(lm_f1.summary())
+print("Spatial correlation")
+print(lm_A.summary())
+print("Temporal correlation")
+print(lm_S.summary())
