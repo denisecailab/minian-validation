@@ -79,9 +79,10 @@ ASPECT = 1.2
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIG_SIZE = 11
+WIDTH = 3.98
 sns.set(
     rc={
-        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -116,11 +117,15 @@ metric_dict = {
     "f1": "F1 Score",
 }
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+ylim_dict = {"Acorr": (0, 1.1), "Scorr": (0, 1.1), "f1": (0, 1.1)}
 
 
-def rename_axis(data, **kwargs):
+def set_yaxis(data, set_range=False, **kwargs):
     ax = plt.gca()
-    ax.set_ylabel(metric_dict[data.iloc[0]["variable"]])
+    var = data.iloc[0]["variable"]
+    ax.set_ylabel(metric_dict[var])
+    if set_range:
+        ax.set_ylim(ylim_dict[var])
 
 
 mapping_df = pd.read_feather(
@@ -149,6 +154,7 @@ for mtype, mdf in metric_df.items():
         margin_titles=True,
         legend_out=True,
         aspect=ASPECT,
+        height=WIDTH / ASPECT,
         row_order=["f1", "Acorr", "Scorr"],
     )
     fig.map_dataframe(
@@ -156,15 +162,19 @@ for mtype, mdf in metric_df.items():
         x="sig",
         y="value",
         hue="pipeline",
-        style="pipeline",
-        markers=True,
+        hue_order=("Minian", "CaImAn"),
+        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        marker="o",
         legend="full",
     )
-    fig.map_dataframe(rename_axis)
+    if mtype == "median":
+        fig.map_dataframe(set_yaxis, set_range=True)
+    else:
+        fig.map_dataframe(set_yaxis)
     fig.map_dataframe(ax_tick, x_var="sig")
     fig.map(format_tick, y_formatter=StrMethodFormatter("{x:.2f}"))
     fig.add_legend()
-    fig.set_xlabels("signal level")
+    fig.set_xlabels("Signal Level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
@@ -220,12 +230,13 @@ mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 
 #%% plot real results
 ASPECT = 1
+WIDTH = 3.98
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIG_SIZE = 11
 sns.set(
     rc={
-        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -287,6 +298,7 @@ for mtype, mdf in metric_df.items():
         df,
         col="variable",
         legend_out=True,
+        height=WIDTH / ASPECT,
         aspect=ASPECT,
         col_order=["f1", "Acorr", "Scorr"],
         sharey=False,
@@ -297,11 +309,14 @@ for mtype, mdf in metric_df.items():
         x="source",
         y="value",
         capsize=0.2,
-        facecolor=(1, 1, 1, 0),
-        edgecolor="gray",
-        hatch="/",
+        hue="source",
+        hue_order=["Minian", "CaImAn", "Manual"],
+        dodge=False,
+        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
     )
-    fig.map_dataframe(sns.swarmplot, x="source", y="value", size=5, alpha=0.9)
+    fig.map_dataframe(
+        sns.swarmplot, x="source", y="value", size=6, alpha=0.8, color="black"
+    )
     if mtype == "median":
         fig.map_dataframe(set_yaxis, set_range=True)
     else:
