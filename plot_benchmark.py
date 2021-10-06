@@ -56,9 +56,10 @@ ASPECT = 1.2
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
 BIG_SIZE = 11
+WIDTH = 3.98
 sns.set(
     rc={
-        "figure.figsize": (3.98, 3.98 / ASPECT),
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
         "font.sans-serif": ["Helvetica"],
@@ -112,6 +113,7 @@ fig = sns.FacetGrid(
     margin_titles=True,
     legend_out=True,
     aspect=ASPECT,
+    height=WIDTH / ASPECT,
     sharey="row",
 )
 fig.map_dataframe(
@@ -119,8 +121,9 @@ fig.map_dataframe(
     x="nfm",
     y="value",
     hue="pipeline",
-    style="pipeline",
-    markers=True,
+    hue_order=("Minian", "CaImAn"),
+    palette={"Minian": "C0", "CaImAn": "C1"},
+    marker="o",
     legend="full",
 )
 fig.map_dataframe(rename_axis)
