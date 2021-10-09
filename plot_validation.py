@@ -315,7 +315,16 @@ for mtype, mdf in metric_df.items():
         palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
     )
     fig.map_dataframe(
-        sns.swarmplot, x="source", y="value", size=6, alpha=0.8, color="black"
+        sns.swarmplot,
+        x="source",
+        y="value",
+        size=6,
+        alpha=0.8,
+        hue="source",
+        hue_order=["Minian", "CaImAn", "Manual"],
+        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        edgecolor="gray",
+        linewidth=2,
     )
     if mtype == "median":
         fig.map_dataframe(set_yaxis, set_range=True)
