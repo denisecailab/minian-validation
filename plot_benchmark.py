@@ -87,7 +87,7 @@ sns.set(
 )
 id_vars = ["pipeline", "nfm", "ncell"]
 val_vars = ["duration", "max_mem"]
-metric_dict = {"duration": "Running Time (minutes)", "max_mem": "Peak Memory (MB)"}
+metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
 
 
