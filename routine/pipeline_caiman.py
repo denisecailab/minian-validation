@@ -46,6 +46,17 @@ def caiman_process(
     vpat: str = r".*\.avi",
     copy_to_int=False,
 ):
+    fnames = natsorted(
+        [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
+    )
+    if copy_to_int:
+        fnames_new = []
+        for f in fnames:
+            fnew = os.path.join(intpath, os.path.relpath(f, dpath))
+            copyfile(f, fnew)
+            fnames_new.append(fnew)
+        fnames = fnames_new
+        print("done copying data")
     # setup
     if profiler is not None:
         profiler.change_phase("setup")
@@ -63,18 +74,6 @@ def caiman_process(
     dpath = os.path.normpath(os.path.abspath(dpath))
     outpath = os.path.normpath(os.path.abspath(outpath))
     os.makedirs(outpath, exist_ok=True)
-    fnames = natsorted(
-        [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
-    )
-    fnames = fnames[:10]
-    if copy_to_int:
-        fnames_new = []
-        for f in fnames:
-            fnew = os.path.join(intpath, os.path.relpath(f, dpath))
-            copyfile(f, fnew)
-            fnames_new.append(fnew)
-        fnames = fnames_new
-        print("done copying data")
     mc_dict["fnames"] = fnames
     opts = params.CNMFParams(params_dict=mc_dict)
     # do motion correction rigid

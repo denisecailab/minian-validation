@@ -13,8 +13,8 @@ from routine.pipeline_minian import minian_process
 from routine.profiling import PipelineProfiler
 
 DPATH = "./data/simulated/validation"
-
 MINIAN_INT_PATH = "~/var/minian-validation/intermediate"
+
 MINIAN_PARAMS = {
     "save_minian": {
         "meta_dict": None,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             minian_process(
                 root, MINIAN_INT_PATH, 16, MINIAN_PARAMS, profiler, glow_rm=False
             )
-            print("minian sucess: {}".format(root))
+            print("minian success: {}".format(root))
         except Exception as e:
             print("minian failed: {}".format(root))
             with open(os.path.join(root, "minian_error"), "w") as txtf:
