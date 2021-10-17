@@ -76,9 +76,9 @@ mapping_df.astype({"ncell": int, "sig": float}).to_feather(
 
 #%% plot simulated results
 ASPECT = 1.2
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
-BIG_SIZE = 11
+SMALL_SIZE = 13
+MEDIUM_SIZE = 14
+BIG_SIZE = 15
 WIDTH = 3.98
 sns.set(
     rc={
@@ -231,9 +231,9 @@ mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 #%% plot real results
 ASPECT = 1
 WIDTH = 3.98
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
-BIG_SIZE = 11
+SMALL_SIZE = 13
+MEDIUM_SIZE = 14
+BIG_SIZE = 15
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),

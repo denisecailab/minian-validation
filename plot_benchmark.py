@@ -53,9 +53,9 @@ prof_df = pd.concat(df_ls, ignore_index=True)
 
 #%% plot overall performance
 ASPECT = 1.2
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
-BIG_SIZE = 11
+SMALL_SIZE = 13
+MEDIUM_SIZE = 14
+BIG_SIZE = 15
 WIDTH = 3.98
 sns.set(
     rc={
