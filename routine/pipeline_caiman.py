@@ -68,7 +68,7 @@ def caiman_process(
     c, dview, n_processes = cm.cluster.setup_cluster(
         backend="local",
         n_processes=n_processes,
-        single_thread=False,
+        single_thread=True if n_processes == 1 else False,
         ignore_preexisting=True,
     )
     dpath = os.path.normpath(os.path.abspath(dpath))
