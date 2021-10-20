@@ -42,12 +42,12 @@ for root, dirs, files in os.walk(IN_DPATH):
             df_ls.append(prof_df)
 prof_df = pd.concat(df_ls, ignore_index=True)
 
-#%% plot overall performance
-ASPECT = 1.2
-SMALL_SIZE = 13
-MEDIUM_SIZE = 14
-BIG_SIZE = 15
-WIDTH = 3.98
+#%% plot tradeoff
+ASPECT = 1.8
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
+WIDTH = 3.94  # 10cm
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
@@ -104,6 +104,11 @@ ax.set_xlabel("Run Time (minutes)")
 ax.set_ylabel("Peak Memory (MB)")
 ax.xaxis.set_major_formatter(EngFormatter())
 ax.yaxis.set_major_formatter(EngFormatter())
+ax.legend(
+    bbox_to_anchor=(1, 0.5),
+    loc="center left",
+    framealpha=0,
+)
 fig.tight_layout()
 fig.savefig(os.path.join(FIG_TRADEOFF, "master.svg"))
 fig.savefig(os.path.join(FIG_TRADEOFF, "master.png"))

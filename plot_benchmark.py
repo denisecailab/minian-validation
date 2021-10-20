@@ -52,11 +52,11 @@ for root, dirs, files in os.walk(IN_DPATH):
 prof_df = pd.concat(df_ls, ignore_index=True)
 
 #%% plot overall performance
-ASPECT = 1.2
-SMALL_SIZE = 13
-MEDIUM_SIZE = 14
-BIG_SIZE = 15
-WIDTH = 3.98
+ASPECT = 1.4
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
+WIDTH = 7.87  # 20cm
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
@@ -112,8 +112,6 @@ fig = sns.FacetGrid(
     col="ncell",
     margin_titles=True,
     legend_out=True,
-    aspect=ASPECT,
-    height=WIDTH / ASPECT,
     sharey="row",
 )
 fig.map_dataframe(
@@ -132,5 +130,6 @@ fig.map(format_tick, x_formatter=EngFormatter(), y_formatter=EngFormatter())
 fig.add_legend()
 fig.set_xlabels("Frame Number")
 fig.set_titles(row_template="", col_template="{col_name} cells")
+fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.svg"))
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.png"))

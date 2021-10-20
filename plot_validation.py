@@ -76,10 +76,10 @@ mapping_df.astype({"ncell": int, "sig": float}).to_feather(
 
 #%% plot simulated results
 ASPECT = 1.2
-SMALL_SIZE = 13
-MEDIUM_SIZE = 14
-BIG_SIZE = 15
-WIDTH = 3.98
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
+WIDTH = 7.87  # 20cm
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
@@ -153,8 +153,6 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        aspect=ASPECT,
-        height=WIDTH / ASPECT,
         row_order=["f1", "Acorr", "Scorr"],
     )
     fig.map_dataframe(
@@ -176,6 +174,7 @@ for mtype, mdf in metric_df.items():
     fig.add_legend()
     fig.set_xlabels("Signal Level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
+    fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
 
@@ -229,11 +228,11 @@ f1_df.to_feather(os.path.join(OUT_PATH, "f1_real.feather"))
 mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 
 #%% plot real results
-ASPECT = 1
-WIDTH = 3.98
-SMALL_SIZE = 13
-MEDIUM_SIZE = 14
-BIG_SIZE = 15
+ASPECT = 2.5
+WIDTH = 7.87  # 20cm
+SMALL_SIZE = 9
+MEDIUM_SIZE = 10
+BIG_SIZE = 11
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
@@ -298,8 +297,6 @@ for mtype, mdf in metric_df.items():
         df,
         col="variable",
         legend_out=True,
-        height=WIDTH / ASPECT,
-        aspect=ASPECT,
         col_order=["f1", "Acorr", "Scorr"],
         sharey=False,
         sharex=False,
@@ -332,6 +329,8 @@ for mtype, mdf in metric_df.items():
         fig.map_dataframe(set_yaxis)
     fig.set_xlabels("Source")
     fig.set_titles(col_template="")
+    fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
+    fig.tight_layout()
     fig.savefig(os.path.join(FIG_PATH, "real-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
 
