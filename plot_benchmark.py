@@ -85,6 +85,7 @@ sns.set(
         "ytick.minor.width": 0.4,
     }
 )
+sns.set_style("ticks")
 id_vars = ["pipeline", "nfm", "ncell"]
 val_vars = ["duration", "max_mem"]
 metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
@@ -119,8 +120,8 @@ fig.map_dataframe(
     x="nfm",
     y="value",
     hue="pipeline",
-    hue_order=("Minian", "CaImAn"),
-    palette={"Minian": "C0", "CaImAn": "C1"},
+    hue_order=("CaImAn", "Minian"),
+    palette={"Minian": "darkblue", "CaImAn": "red"},
     marker="o",
     legend="full",
 )

@@ -108,7 +108,7 @@ sns.set(
         "ytick.minor.width": 0.4,
     }
 )
-# sns.set_style("ticks")
+sns.set_style("ticks")
 metrics = ["Acorr", "Scorr"]
 id_vars = ["ncell", "sig", "pipeline"]
 metric_dict = {
@@ -160,8 +160,8 @@ for mtype, mdf in metric_df.items():
         x="sig",
         y="value",
         hue="pipeline",
-        hue_order=("Minian", "CaImAn"),
-        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        hue_order=("CaImAn", "Minian"),
+        palette={"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"},
         marker="o",
         legend="full",
     )
@@ -261,7 +261,7 @@ sns.set(
         "ytick.minor.width": 0.4,
     }
 )
-# sns.set_style("ticks")
+sns.set_style("ticks")
 metrics = ["Acorr", "Scorr"]
 id_vars = ["animal", "source"]
 metric_dict = {
@@ -300,6 +300,7 @@ for mtype, mdf in metric_df.items():
         col_order=["f1", "Acorr", "Scorr"],
         sharey=False,
         sharex=False,
+        gridspec_kws={"width_ratios": (3, 2, 2)},
     )
     fig.map_dataframe(
         sns.barplot,
@@ -309,7 +310,7 @@ for mtype, mdf in metric_df.items():
         hue="source",
         hue_order=["Minian", "CaImAn", "Manual"],
         dodge=False,
-        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        palette={"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"},
     )
     fig.map_dataframe(
         sns.swarmplot,
@@ -319,7 +320,7 @@ for mtype, mdf in metric_df.items():
         alpha=0.8,
         hue="source",
         hue_order=["Minian", "CaImAn", "Manual"],
-        palette={"Minian": "C0", "CaImAn": "C1", "Manual": "C2"},
+        palette={"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"},
         edgecolor="gray",
         linewidth=2,
     )

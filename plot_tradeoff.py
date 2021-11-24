@@ -76,6 +76,7 @@ sns.set(
         "ytick.minor.width": 0.4,
     }
 )
+sns.set_style("ticks")
 id_vars = ["pipeline", "nps"]
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
 prof_agg = (
@@ -94,8 +95,8 @@ sns.lineplot(
     x="duration",
     y="max_mem",
     hue="pipeline",
-    hue_order=("Minian", "CaImAn"),
-    palette={"Minian": "C0", "CaImAn": "C1"},
+    hue_order=("CaImAn", "Minian"),
+    palette={"Minian": "darkblue", "CaImAn": "red"},
     marker="o",
     legend="brief",
     ax=ax,
