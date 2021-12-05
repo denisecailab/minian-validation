@@ -25,7 +25,7 @@ if __name__ == "__main__":
         }
     )
     out_path = "data/simulated/validation"
-    sig_ls = [0.6, 1, 1.4, 1.8]
+    sig_ls = [0.2, 0.4, 0.6, 1, 1.4, 1.8]
     ncell_ls = [100, 300, 500]
 
     os.makedirs(out_path, exist_ok=True)
@@ -43,14 +43,16 @@ if __name__ == "__main__":
             ncell=ncell,
             dims={"height": 512, "width": 512, "frame": 20000},
             sig_scale=sig,
-            sz_mean=3,
-            sz_sigma=0.6,
-            sz_min=0.1,
+            sz_mean=15,
+            sz_sigma=5,
+            sz_min=3,
             tmp_pfire=0.01,
-            tmp_tau_d=6,
-            tmp_tau_r=1,
-            bg_nsrc=100,
-            bg_tmp_var=2,
+            tmp_tau_d=60,
+            tmp_tau_r=5,
+            bg_nsrc=300,
+            bg_tmp_var=3,
+            bg_cons_fac=0.05,
+            bg_smth_var=10,
             mo_stp_var=1,
             mo_cons_fac=0.2,
             post_offset=1,
