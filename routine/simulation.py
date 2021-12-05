@@ -293,6 +293,8 @@ if __name__ == "__main__":
         tmp_tau_r=1,
         bg_nsrc=100,
         bg_tmp_var=2,
+        bg_cons_fac=0.1,
+        bg_smth_var=60,
         mo_stp_var=1,
         mo_cons_fac=0.2,
         post_offset=1,
