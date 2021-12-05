@@ -9,6 +9,7 @@ import sparse
 import xarray as xr
 from numpy import random
 from scipy.stats import multivariate_normal
+from scipy.ndimage import gaussian_filter1d
 
 from .minian_functions import save_minian, shift_perframe, write_video
 
@@ -68,7 +69,14 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
 
 
 def random_walk(
-    n_stp, stp_var: float = 1, constrain_factor: float = 0, ndim=1, norm=False
+    n_stp,
+    stp_var: float = 1,
+    constrain_factor: float = 0,
+    ndim=1,
+    norm=False,
+    integer=True,
+    nn=False,
+    smooth_var=None,
 ):
     if constrain_factor > 0:
         walk = np.zeros(shape=(n_stp, ndim))
@@ -80,13 +88,20 @@ def random_walk(
             walk[i] = last + random.normal(
                 loc=-constrain_factor * last, scale=stp_var, size=ndim
             )
-        walk = np.around(walk).astype(int)
+        if integer:
+            walk = np.around(walk).astype(int)
     else:
         stps = random.normal(loc=0, scale=stp_var, size=(n_stp, ndim))
-        stps = np.around(stps).astype(int)
+        if integer:
+            stps = np.around(stps).astype(int)
         walk = np.cumsum(stps, axis=0)
+    if smooth_var is not None:
+        for iw in range(ndim):
+            walk[:, iw] = gaussian_filter1d(walk[:, iw], smooth_var)
     if norm:
         walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
+    elif nn:
+        walk = np.clip(walk, 0, None)
     return walk
 
 
