@@ -119,6 +119,8 @@ def simulate_data(
     post_gain: float,
     bg_nsrc: int,
     bg_tmp_var: float,
+    bg_cons_fac: float,
+    bg_smth_var: float,
     mo_stp_var: float,
     mo_cons_fac: float = 1,
     cent=None,
@@ -184,7 +186,16 @@ def simulate_data(
         sparse.COO.from_numpy(np.where(A_bg > zero_thres, A_bg, 0)), chunks=-1
     )
     C_bg = darr.from_array(
-        random_walk(ff, ndim=bg_nsrc, stp_var=bg_tmp_var, norm=True),
+        random_walk(
+            ff,
+            ndim=bg_nsrc,
+            stp_var=bg_tmp_var,
+            norm=False,
+            integer=False,
+            nn=True,
+            constrain_factor=bg_cons_fac,
+            smooth_var=bg_smth_var,
+        ),
         chunks=(chk_size, -1),
     )
     Y = darr.blockwise(
