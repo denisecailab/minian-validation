@@ -117,7 +117,7 @@ def compute_metrics(
     )
     cent = centroid(A)
     cent_true = centroid(A_true)
-    mapping = compute_mapping(cent_true, cent, 3)
+    mapping = compute_mapping(cent_true, cent, 15)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
     if f1_only:
         return f1
