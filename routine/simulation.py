@@ -177,8 +177,8 @@ def simulate_data(
     A_bg = gauss_cell(
         2 * pad + hh,
         2 * pad + ww,
-        sz_mean=sz_mean * 50,
-        sz_sigma=sz_sigma * 40,
+        sz_mean=sz_mean * 60,
+        sz_sigma=sz_sigma * 10,
         sz_min=sz_min,
         cent=cent_bg,
     )
