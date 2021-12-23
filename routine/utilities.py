@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -14,3 +15,10 @@ def norm(a):
         return (a - amin) / (amax - amin)
     else:
         return a
+
+
+def quantile(a, q, exclude_zero=True):
+    a = a.reshape(-1)
+    if exclude_zero:
+        a = a[a > 0]
+    return np.quantile(a, q)
