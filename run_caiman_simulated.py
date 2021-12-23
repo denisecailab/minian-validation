@@ -73,7 +73,7 @@ if __name__ == "__main__":
             proc=os.getpid(),
             interval=0.2,
             outpath=os.path.join(root, "caiman_prof.csv"),
-            nchild=20,
+            nchild=10,
         )
         shutil.rmtree(CAIMAN_INT_PATH, ignore_errors=True)
         os.makedirs(CAIMAN_INT_PATH, exist_ok=True)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 root,
                 root,
                 CAIMAN_INT_PATH,
-                16,
+                4,
                 MC_DICT,
                 PARAM_DICT,
                 QUALITY_DICT,

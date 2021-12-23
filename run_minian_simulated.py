@@ -12,7 +12,7 @@ import numpy as np
 from routine.pipeline_minian import minian_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/validation"
+DPATH = "./data/simulated/benchmark"
 MINIAN_INT_PATH = "~/var/minian-validation/intermediate"
 
 MINIAN_PARAMS = {
@@ -92,12 +92,12 @@ if __name__ == "__main__":
             proc=os.getpid(),
             interval=0.2,
             outpath=os.path.join(root, "minian_prof.csv"),
-            nchild=20,
+            nchild=10,
         )
         shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
         try:
             minian_process(
-                root, MINIAN_INT_PATH, 16, MINIAN_PARAMS, profiler, glow_rm=False
+                root, MINIAN_INT_PATH, 4, MINIAN_PARAMS, profiler, glow_rm=False
             )
             print("minian success: {}".format(root))
         except Exception as e:
