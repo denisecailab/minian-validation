@@ -89,7 +89,10 @@ def compute_metrics(
     A_true: xr.DataArray = None,
     S: xr.DataArray = None,
     S_true: xr.DataArray = None,
+    C: xr.DataArray = None,
+    C_true: xr.DataArray = None,
     f1_only=False,
+    coarsen_factor=None,
 ) -> Tuple[float, pd.DataFrame]:
     chk_A = {"height": -1, "width": -1, "unit_id": 30}
     chk_S = {"frame": -1, "unit_id": 30}
@@ -117,7 +120,7 @@ def compute_metrics(
     )
     cent = centroid(A)
     cent_true = centroid(A_true)
-    mapping = compute_mapping(cent_true, cent, 3)
+    mapping = compute_mapping(cent_true, cent, 15)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
     if f1_only:
         return f1
@@ -134,6 +137,21 @@ def compute_metrics(
         .transpose("unit_id", "frame")
         .chunk(chk_S)
     )
+    if coarsen_factor is not None:
+        S = S.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
+        S_true = S_true.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
+    if C is None:
+        C = result_ds["C"]
+    if C_true is None:
+        C_true = true_ds["C"]
+    C = C.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
+    C_true = (
+        C_true.compute()
+        .sel(unit_id=mapping["uidA"].values)
+        .transpose("unit_id", "frame")
+        .chunk(chk_S)
+    )
     mapping["Acorr"] = compute_cos(Am_true, Am)
     mapping["Scorr"] = compute_cos(S, S_true)
+    mapping["Ccorr"] = compute_cos(C, C_true)
     return f1, mapping

@@ -12,7 +12,7 @@ import warnings
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/benchmark"
+DPATH = "./data/simulated/validation"
 CAIMAN_INT_PATH = "~/var/minian-validation/intermediate-cm"
 
 

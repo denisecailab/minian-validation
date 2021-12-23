@@ -9,6 +9,7 @@ import sparse
 import xarray as xr
 from numpy import random
 from scipy.stats import multivariate_normal
+from scipy.ndimage import gaussian_filter1d
 
 from .minian_functions import save_minian, shift_perframe, write_video
 
@@ -68,7 +69,14 @@ def exp_trace(frame: int, pfire: float, tau_d: float, tau_r: float, trunc_thres=
 
 
 def random_walk(
-    n_stp, stp_var: float = 1, constrain_factor: float = 0, ndim=1, norm=False
+    n_stp,
+    stp_var: float = 1,
+    constrain_factor: float = 0,
+    ndim=1,
+    norm=False,
+    integer=True,
+    nn=False,
+    smooth_var=None,
 ):
     if constrain_factor > 0:
         walk = np.zeros(shape=(n_stp, ndim))
@@ -80,13 +88,20 @@ def random_walk(
             walk[i] = last + random.normal(
                 loc=-constrain_factor * last, scale=stp_var, size=ndim
             )
-        walk = np.around(walk).astype(int)
+        if integer:
+            walk = np.around(walk).astype(int)
     else:
         stps = random.normal(loc=0, scale=stp_var, size=(n_stp, ndim))
-        stps = np.around(stps).astype(int)
+        if integer:
+            stps = np.around(stps).astype(int)
         walk = np.cumsum(stps, axis=0)
+    if smooth_var is not None:
+        for iw in range(ndim):
+            walk[:, iw] = gaussian_filter1d(walk[:, iw], smooth_var)
     if norm:
         walk = (walk - walk.min(axis=0)) / (walk.max(axis=0) - walk.min(axis=0))
+    elif nn:
+        walk = np.clip(walk, 0, None)
     return walk
 
 
@@ -104,6 +119,8 @@ def simulate_data(
     post_gain: float,
     bg_nsrc: int,
     bg_tmp_var: float,
+    bg_cons_fac: float,
+    bg_smth_var: float,
     mo_stp_var: float,
     mo_cons_fac: float = 1,
     cent=None,
@@ -160,8 +177,8 @@ def simulate_data(
     A_bg = gauss_cell(
         2 * pad + hh,
         2 * pad + ww,
-        sz_mean=sz_mean * 100,
-        sz_sigma=sz_sigma * 60,
+        sz_mean=sz_mean * 60,
+        sz_sigma=sz_sigma * 10,
         sz_min=sz_min,
         cent=cent_bg,
     )
@@ -169,7 +186,16 @@ def simulate_data(
         sparse.COO.from_numpy(np.where(A_bg > zero_thres, A_bg, 0)), chunks=-1
     )
     C_bg = darr.from_array(
-        random_walk(ff, ndim=bg_nsrc, stp_var=bg_tmp_var, norm=True),
+        random_walk(
+            ff,
+            ndim=bg_nsrc,
+            stp_var=bg_tmp_var,
+            norm=False,
+            integer=False,
+            nn=True,
+            constrain_factor=bg_cons_fac,
+            smooth_var=bg_smth_var,
+        ),
         chunks=(chk_size, -1),
     )
     Y = darr.blockwise(
@@ -267,6 +293,8 @@ if __name__ == "__main__":
         tmp_tau_r=1,
         bg_nsrc=100,
         bg_tmp_var=2,
+        bg_cons_fac=0.1,
+        bg_smth_var=60,
         mo_stp_var=1,
         mo_cons_fac=0.2,
         post_offset=1,

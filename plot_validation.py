@@ -45,8 +45,8 @@ for root, dirs, files in os.walk(IN_SIM_DPATH):
         "unit_id", "frame", "height", "width"
     )
     truth_ds = open_minian(os.path.join(root, truth_ds))
-    f1_minian, mapping_minian = compute_metrics(minian_ds, truth_ds)
-    f1_caiman, mapping_caiman = compute_metrics(caiman_ds, truth_ds)
+    f1_minian, mapping_minian = compute_metrics(minian_ds, truth_ds, coarsen_factor=10)
+    f1_caiman, mapping_caiman = compute_metrics(caiman_ds, truth_ds, coarsen_factor=10)
     sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
     mapping_minian["sig"] = sig
     mapping_caiman["sig"] = sig
@@ -109,15 +109,16 @@ sns.set(
     }
 )
 sns.set_style("ticks")
-metrics = ["Acorr", "Scorr"]
+metrics = ["Acorr", "Scorr", "Ccorr"]
 id_vars = ["ncell", "sig", "pipeline"]
 metric_dict = {
     "Acorr": "Spatial Correlation",
-    "Scorr": "Temporal Correlation",
+    "Scorr": "S Correlation",
+    "Ccorr": "C Correlation",
     "f1": "F1 Score",
 }
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
-ylim_dict = {"Acorr": (0, 1.1), "Scorr": (0, 1.1), "f1": (0, 1.1)}
+ylim_dict = {"Acorr": (0, 1.1), "Scorr": (0, 1.1), "f1": (0, 1.1), "Ccorr": (0, 1.1)}
 
 
 def set_yaxis(data, set_range=False, **kwargs):
@@ -153,7 +154,7 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        row_order=["f1", "Acorr", "Scorr"],
+        row_order=["f1", "Acorr", "Scorr", "Ccorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
