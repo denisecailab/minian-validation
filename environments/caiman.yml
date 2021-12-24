@@ -1,7 +1,7 @@
 channels:
   - conda-forge
 dependencies:
-  - caiman
+  - caiman = 1.9.7
   - memory_profiler
   - black
   - natsort
