@@ -199,14 +199,14 @@ for root, dirs, files in os.walk(IN_REAL_DPATH):
     f1_minian, mapping_minian = compute_metrics(
         A=minian_ds["A"],
         A_true=truth_ds["A_true"],
-        S=minian_ds["C"].sel(frame=slice(0, 9999)),
-        S_true=truth_ds["C_true"].sel(frame=slice(0, 9999)),
+        C=minian_ds["C"],
+        C_true=truth_ds["C_true"],
     )
     f1_caiman, mapping_caiman = compute_metrics(
         A=caiman_ds["A"],
         A_true=truth_ds["A_true"],
-        S=caiman_ds["C"].sel(frame=slice(0, 9999)),
-        S_true=truth_ds["C_true"].sel(frame=slice(0, 9999)),
+        C=caiman_ds["C"],
+        C_true=truth_ds["C_true"],
     )
     anm = root.split(os.sep)[-1]
     mapping_minian["animal"] = anm
@@ -263,15 +263,15 @@ sns.set(
     }
 )
 sns.set_style("ticks")
-metrics = ["Acorr", "Scorr"]
+metrics = ["Acorr", "Ccorr"]
 id_vars = ["animal", "source"]
 metric_dict = {
     "Acorr": "Spatial Correlation",
-    "Scorr": "Temporal Correlation",
+    "Ccorr": "Temporal Correlation",
     "f1": "F1 Score",
 }
 source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
-ylim_dict = {"Acorr": (0.6, 1), "Scorr": (0.6, 1), "f1": (0.1, 1)}
+ylim_dict = {"Acorr": (0.6, 1), "Ccorr": (0.6, 1), "f1": (0.1, 1)}
 
 
 def set_yaxis(data, set_range=False, **kwargs):
@@ -298,7 +298,7 @@ for mtype, mdf in metric_df.items():
         df,
         col="variable",
         legend_out=True,
-        col_order=["f1", "Acorr", "Scorr"],
+        col_order=["f1", "Acorr", "Ccorr"],
         sharey=False,
         sharex=False,
         gridspec_kws={"width_ratios": (3, 2, 2)},
@@ -337,7 +337,7 @@ for mtype, mdf in metric_df.items():
     fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
 
 #%% stats on real validation
-metrics = ["Acorr", "Scorr"]
+metrics = ["Acorr", "Ccorr"]
 id_vars = ["animal", "source"]
 source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
@@ -349,7 +349,7 @@ f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
 )
 lm_f1 = ols("f1 ~ source", f1_df).fit()
 lm_A = ols("Acorr ~ source", metric_df).fit()
-lm_S = ols("Scorr ~ source", metric_df).fit()
+lm_S = ols("Ccorr ~ source", metric_df).fit()
 print("F1 score")
 print(lm_f1.summary())
 print("Spatial correlation")
