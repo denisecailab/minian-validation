@@ -15,12 +15,13 @@ import sparse
 import xarray as xr
 
 from routine.minian_functions import centroid, open_minian, save_minian
-from routine.validation import compute_f1, compute_mapping, convert_rois
+from routine.validation import compute_mapping, convert_rois
 
 IN_DPATH = "./data/real"
 IN_ROI_FILES_PAT = r"^manual_score_([A-Z]+).zip$"
 IN_PS_DS = "preprocess_ds"
 OUT_DS = "truth"
+OUT_MAPPING = "gt_mapping.csv"
 
 #%% load manual scoring and generate GT
 for root, dirs, files in os.walk(IN_DPATH):
@@ -76,3 +77,4 @@ for root, dirs, files in os.walk(IN_DPATH):
     manual_ds["C_true"] = C_true
     for name, arr in manual_ds.items():
         save_minian(arr.rename(name), os.path.join(root, OUT_DS), overwrite=True)
+    mapping.to_csv(os.path.join(root, OUT_MAPPING), index=False)
