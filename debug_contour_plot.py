@@ -13,11 +13,13 @@ from routine.utilities import quantile
 IN_DPATH = "./data/real/sao"
 IN_CAIMAN_RESULT_PAT = "caiman_result.nc"
 IN_MINIAN_RESULT_PAT = "minian_result"
+IN_GT_MAPPING = "gt_mapping.csv"
 
 #%% load data
 truth_ds = open_minian(os.path.join(IN_DPATH, "truth"))
 minian_ds = open_minian(os.path.join(IN_DPATH, IN_MINIAN_RESULT_PAT))
 caiman_ds = xr.open_dataset(os.path.join(IN_DPATH, IN_CAIMAN_RESULT_PAT))
+gt_mapping = pd.read_csv(os.path.join(IN_DPATH, IN_GT_MAPPING))
 
 #%% contour plot
 ASPECT = 2.5
@@ -58,29 +60,46 @@ sns.set_style("ticks")
 fig, ax = plt.subplots(figsize=(WIDTH, WIDTH))
 ax.set_axis_off()
 xg, yg = np.arange(truth_ds.sizes["width"]), np.arange(truth_ds.sizes["height"])
-im = ax.imshow(minian_ds["max_proj"], cmap="viridis")
-A_DM = truth_ds["A_DM"].max("unit_id").compute()
-A_TF = truth_ds["A_TF"].max("unit_id").compute()
+im = ax.imshow(minian_ds["max_proj"], cmap="Greys_r")
+A_true = truth_ds["A_true"].max("unit_id").compute()
+A_dm = (
+    truth_ds["A_DM"]
+    .sel(
+        unit_id=sorted(
+            list(set(np.arange(truth_ds.sizes["unit_id"])) - set(gt_mapping["uidA"]))
+        )
+    )
+    .max("unit_id")
+    .compute()
+)
+A_tf = (
+    truth_ds["A_TF"]
+    .sel(
+        unit_id=sorted(
+            list(set(np.arange(truth_ds.sizes["unit_id"])) - set(gt_mapping["uidB"]))
+        )
+    )
+    .max("unit_id")
+    .compute()
+)
+A_mm = xr.concat([A_dm, A_tf], "unit_id").max("unit_id").compute()
 A_minian = minian_ds["A"].max("unit_id").compute()
 A_caiman = caiman_ds["A"].max("unit_id").compute()
 contours = {
-    "DM": ax.contour(xg, yg, A_DM, colors="white", levels=[quantile(A_DM.values, 0.9)]),
-    "TF": ax.contour(xg, yg, A_TF, colors="red", levels=[quantile(A_TF.values, 0.9)]),
-    "Minian": ax.contour(
+    "Manual-Consensus": ax.contour(xg, yg, A_true, colors="C2", levels=[0.6]),
+    "Manual-Mismatch": ax.contour(
         xg,
         yg,
-        A_minian,
-        colors="white",
-        levels=[quantile(A_minian.values, 0.7)],
+        A_mm,
+        colors="C2",
+        levels=[0.6],
         linestyles="dashed",
     ),
+    "Minian": ax.contour(
+        xg, yg, A_minian, colors="C1", levels=[quantile(A_minian.values, 0.7)]
+    ),
     "CaImAn": ax.contour(
-        xg,
-        yg,
-        A_caiman,
-        colors="red",
-        levels=[quantile(A_caiman.values, 0.7)],
-        linestyles="dashed",
+        xg, yg, A_caiman, colors="C0", levels=[quantile(A_caiman.values, 0.7)]
     ),
 }
 hd_ls, lb_ls = [], []
@@ -88,7 +107,8 @@ for cname, cnt in contours.items():
     hd, _ = cnt.legend_elements()
     hd_ls.append(hd[0])
     lb_ls.append(cname)
-ax.legend(hd_ls, lb_ls)
-ax.set_xlim(50, 450)
-ax.set_ylim(200, 600)
+ax.legend(hd_ls, lb_ls, title="Source")
+ax.set_xlim(75, 525)
+ax.set_ylim(150, 600)
+ax.invert_yaxis()
 fig.savefig("contour.png")
