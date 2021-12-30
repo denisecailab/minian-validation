@@ -14,11 +14,13 @@ import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib.ticker import StrMethodFormatter
+from matplotlib.transforms import ScaledTranslation
 from statsmodels.formula.api import ols
 
 from routine.minian_functions import open_minian
 from routine.validation import compute_metrics
 from routine.plotting import ax_tick, format_tick
+from routine.utilities import quantile
 
 IN_SIM_DPATH = "./data/simulated/validation"
 IN_REAL_DPATH = "./data/real"
@@ -26,6 +28,8 @@ IN_CAIMAN_RESULT_PAT = "caiman_result.nc"
 IN_MINIAN_RESULT_PAT = "minian_result"
 OUT_PATH = "./store/validation"
 FIG_PATH = "./fig/validation/"
+IN_GT_MAPPING = "gt_mapping.csv"
+IN_CONT_PATH = "./data/real/sao"
 
 os.makedirs(OUT_PATH, exist_ok=True)
 os.makedirs(FIG_PATH, exist_ok=True)
@@ -229,7 +233,7 @@ f1_df.to_feather(os.path.join(OUT_PATH, "f1_real.feather"))
 mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 
 #%% plot real results
-ASPECT = 2.5
+ASPECT = 0.7
 WIDTH = 7.87  # 20cm
 SMALL_SIZE = 9
 MEDIUM_SIZE = 10
@@ -266,75 +270,151 @@ sns.set_style("ticks")
 metrics = ["Acorr", "Ccorr"]
 id_vars = ["animal", "source"]
 metric_dict = {
+    "f1": "F1 Score",
     "Acorr": "Spatial Correlation",
     "Ccorr": "Temporal Correlation",
-    "f1": "F1 Score",
 }
+layout = [["contour", "contour", "contour"], ["f1", "Acorr", "Ccorr"]]
 source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
+palette = {"Minian": "C0", "CaImAn": "C1", "Manual": "C2"}
 ylim_dict = {"Acorr": (0.6, 1), "Ccorr": (0.6, 1), "f1": (0.1, 1)}
-
-
-def set_yaxis(data, set_range=False, **kwargs):
-    ax = plt.gca()
-    var = data.iloc[0]["variable"]
-    ax.set_ylabel(metric_dict[var])
-    if set_range:
-        ax.set_ylim(ylim_dict[var])
-
-
+# transform data for plotting
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
     {"source": source_dict}
 )
-metric_df = {
-    "median": mapping_df.groupby(id_vars)[metrics].median().reset_index(),
-    "worst": mapping_df.groupby(id_vars)[metrics].min().reset_index(),
-}
 f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_real.feather")).replace(
     {"source": source_dict}
 )
-for mtype, mdf in metric_df.items():
-    df = f1_df.merge(mdf, on=id_vars, how="left").melt(id_vars=id_vars).dropna()
-    fig = sns.FacetGrid(
-        df,
-        col="variable",
-        legend_out=True,
-        col_order=["f1", "Acorr", "Ccorr"],
-        sharey=False,
-        sharex=False,
-        gridspec_kws={"width_ratios": (3, 2, 2)},
+truth_ds = open_minian(os.path.join(IN_CONT_PATH, "truth"))
+minian_ds = open_minian(os.path.join(IN_CONT_PATH, IN_MINIAN_RESULT_PAT))
+caiman_ds = xr.open_dataset(os.path.join(IN_CONT_PATH, IN_CAIMAN_RESULT_PAT))
+gt_mapping = pd.read_csv(os.path.join(IN_CONT_PATH, IN_GT_MAPPING))
+metric_df = mapping_df.groupby(id_vars)[metrics].median().reset_index()
+data_df = f1_df.merge(metric_df, on=id_vars, how="left")
+xg, yg = np.arange(truth_ds.sizes["width"]), np.arange(truth_ds.sizes["height"])
+A_true = truth_ds["A_true"].max("unit_id").compute()
+A_dm = (
+    truth_ds["A_DM"]
+    .sel(
+        unit_id=sorted(
+            list(set(np.arange(truth_ds.sizes["unit_id"])) - set(gt_mapping["uidA"]))
+        )
     )
-    fig.map_dataframe(
-        sns.barplot,
+    .max("unit_id")
+    .compute()
+)
+A_tf = (
+    truth_ds["A_TF"]
+    .sel(
+        unit_id=sorted(
+            list(set(np.arange(truth_ds.sizes["unit_id"])) - set(gt_mapping["uidB"]))
+        )
+    )
+    .max("unit_id")
+    .compute()
+)
+A_mm = xr.concat([A_dm, A_tf], "unit_id").max("unit_id").compute()
+A_minian = minian_ds["A"].max("unit_id").compute()
+A_caiman = caiman_ds["A"].max("unit_id").compute()
+# plot
+fig, axs = plt.subplot_mosaic(
+    layout,
+    figsize=(WIDTH, WIDTH / ASPECT),
+    gridspec_kw={"width_ratios": (3, 2, 2), "height_ratios": (2.6, 1)},
+)
+ax_cnt = axs["contour"]
+im = ax_cnt.imshow(minian_ds["max_proj"], cmap="Greys_r")
+contours = {
+    "Manual-Consensus": ax_cnt.contour(
+        xg, yg, A_true, colors=palette["Manual"], levels=[0.6]
+    ),
+    "Manual-Mismatch": ax_cnt.contour(
+        xg,
+        yg,
+        A_mm,
+        colors=palette["Manual"],
+        levels=[0.6],
+        linestyles="dashed",
+    ),
+    "Minian": ax_cnt.contour(
+        xg,
+        yg,
+        A_minian,
+        colors=palette["Minian"],
+        levels=[quantile(A_minian.values, 0.7)],
+    ),
+    "CaImAn": ax_cnt.contour(
+        xg,
+        yg,
+        A_caiman,
+        colors=palette["CaImAn"],
+        levels=[quantile(A_caiman.values, 0.7)],
+    ),
+}
+hd_ls, lb_ls = [], []
+for cname, cnt in contours.items():
+    hd, _ = cnt.legend_elements()
+    hd_ls.append(hd[0])
+    lb_ls.append(cname)
+ax_cnt.legend(hd_ls, lb_ls, title="Source")
+ax_cnt.set_xlim(75, 525)
+ax_cnt.set_ylim(150, 600)
+ax_cnt.invert_yaxis()
+ax_cnt.set_axis_off()
+for var, vname in metric_dict.items():
+    cur_ax = axs[var]
+    sns.barplot(
+        data=data_df[data_df[var].notnull()],
         x="source",
-        y="value",
+        y=var,
         capsize=0.2,
+        dodge=False,
         hue="source",
         hue_order=["Minian", "CaImAn", "Manual"],
-        dodge=False,
-        palette={"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"},
+        palette=palette,
+        ax=cur_ax,
     )
-    fig.map_dataframe(
-        sns.swarmplot,
+    sns.swarmplot(
+        data=data_df[data_df[var].notnull()],
         x="source",
-        y="value",
+        y=var,
         size=6,
         alpha=0.8,
         hue="source",
         hue_order=["Minian", "CaImAn", "Manual"],
-        palette={"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"},
+        palette=palette,
         edgecolor="gray",
         linewidth=2,
+        ax=cur_ax,
     )
-    if mtype == "median":
-        fig.map_dataframe(set_yaxis, set_range=True)
-    else:
-        fig.map_dataframe(set_yaxis)
-    fig.set_xlabels("Source")
-    fig.set_titles(col_template="")
-    fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
-    fig.tight_layout()
-    fig.savefig(os.path.join(FIG_PATH, "real-{}.svg".format(mtype)))
-    fig.savefig(os.path.join(FIG_PATH, "real-{}.png".format(mtype)))
+    cur_ax.set_xlabel("Source")
+    cur_ax.set_ylabel(vname)
+    cur_ax.set_ylim(ylim_dict[var])
+    cur_ax.get_legend().remove()
+axs["contour"].text(
+    0,
+    1,
+    "a",
+    transform=axs["contour"].transAxes
+    + ScaledTranslation(-20 / 72, 10 / 72, fig.dpi_scale_trans),
+    va="bottom",
+    fontweight="bold",
+    fontsize="x-large",
+)
+axs["f1"].text(
+    0,
+    1,
+    "b",
+    transform=axs["f1"].transAxes
+    + ScaledTranslation(-40 / 72, 10 / 72, fig.dpi_scale_trans),
+    va="bottom",
+    fontweight="bold",
+    fontsize="x-large",
+)
+sns.despine()
+fig.tight_layout(h_pad=1, w_pad=2)
+fig.savefig(os.path.join(FIG_PATH, "real.svg"))
+fig.savefig(os.path.join(FIG_PATH, "real.png"))
 
 #%% stats on real validation
 metrics = ["Acorr", "Ccorr"]
