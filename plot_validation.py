@@ -277,7 +277,7 @@ metric_dict = {
 layout = [["contour", "contour", "contour"], ["f1", "Acorr", "Ccorr"]]
 source_dict = {"minian": "Minian", "caiman": "CaImAn", "DM": "Manual", "TF": "Manual"}
 palette = {"Minian": "C0", "CaImAn": "C1", "Manual": "C2"}
-ylim_dict = {"Acorr": (0.6, 1), "Ccorr": (0.6, 1), "f1": (0.1, 1)}
+ylim_dict = {"Acorr": (0, 1), "Ccorr": (0, 1), "f1": (0, 1)}
 # transform data for plotting
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_real.feather")).replace(
     {"source": source_dict}
