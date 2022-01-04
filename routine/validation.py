@@ -93,6 +93,8 @@ def compute_metrics(
     C_true: xr.DataArray = None,
     f1_only=False,
     coarsen_factor=None,
+    dist_thres=15,
+    register=True,
 ) -> Tuple[float, pd.DataFrame]:
     chk_A = {"height": -1, "width": -1, "unit_id": 30}
     chk_S = {"frame": -1, "unit_id": 30}
@@ -102,25 +104,26 @@ def compute_metrics(
         A_true = true_ds["A"]
     A = A.compute().chunk(chk_A)
     A_true = A_true.compute().chunk(chk_A)
-    sumim = A.max("unit_id").compute().transpose("height", "width").values
-    sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
-    sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
-    A = (
-        xr.apply_ufunc(
-            shift_perframe,
-            A,
-            input_core_dims=[["height", "width"]],
-            output_core_dims=[["height", "width"]],
-            vectorize=True,
-            kwargs={"sh": sh, "fill": 0},
-            dask="parallelized",
+    if register:
+        sumim = A.max("unit_id").compute().transpose("height", "width").values
+        sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
+        sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
+        A = (
+            xr.apply_ufunc(
+                shift_perframe,
+                A,
+                input_core_dims=[["height", "width"]],
+                output_core_dims=[["height", "width"]],
+                vectorize=True,
+                kwargs={"sh": sh, "fill": 0},
+                dask="parallelized",
+            )
+            .compute()
+            .chunk(chk_A)
         )
-        .compute()
-        .chunk(chk_A)
-    )
     cent = centroid(A)
     cent_true = centroid(A_true)
-    mapping = compute_mapping(cent_true, cent, 15)
+    mapping = compute_mapping(cent_true, cent, dist_thres)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
     if f1_only:
         return f1
