@@ -436,3 +436,30 @@ print("Spatial correlation")
 print(lm_A.summary())
 print("Temporal correlation")
 print(lm_S.summary())
+
+#%% compute metric on pipeline comparison
+f1_ls = []
+mapping_ls = []
+for root, dirs, files in os.walk(IN_REAL_DPATH):
+    try:
+        minian_ds = list(filter(lambda f: re.search(IN_MINIAN_RESULT_PAT, f), dirs))[0]
+        caiman_ds = list(filter(lambda f: re.search(IN_CAIMAN_RESULT_PAT, f), files))[0]
+    except IndexError:
+        continue
+    minian_ds = open_minian(os.path.join(root, minian_ds))
+    caiman_ds = xr.open_dataset(os.path.join(root, caiman_ds)).transpose(
+        "unit_id", "frame", "height", "width"
+    )
+    f1, mapping = compute_metrics(
+        result_ds=caiman_ds, true_ds=minian_ds, dist_thres=15, register=False
+    )
+    anm = root.split(os.sep)[-1]
+    mapping["animal"] = anm
+    f1 = pd.Series({"f1": f1, "animal": anm})
+    f1_ls.append(f1)
+    mapping_ls.append(mapping)
+    print(root)
+f1_df = pd.concat(f1_ls, axis="columns").T
+mapping_df = pd.concat(mapping_ls, ignore_index=True)
+f1_df.to_feather(os.path.join(OUT_PATH, "f1_pipeline.feather"))
+mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_pipeline.feather"))
