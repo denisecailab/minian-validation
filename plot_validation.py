@@ -118,7 +118,7 @@ id_vars = ["ncell", "sig", "pipeline"]
 metric_dict = {
     "Acorr": "Spatial Correlation",
     "Scorr": "S Correlation",
-    "Ccorr": "C Correlation",
+    "Ccorr": "Temporal Correlation",
     "f1": "F1 Score",
 }
 pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
@@ -158,7 +158,7 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        row_order=["f1", "Acorr", "Scorr", "Ccorr"],
+        row_order=["f1", "Acorr", "Ccorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
