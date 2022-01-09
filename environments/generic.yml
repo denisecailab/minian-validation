@@ -24,3 +24,5 @@ dependencies:
   - pyarrow
   - seaborn
   - statsmodels
+  - scikit-learn
+  - colorcet

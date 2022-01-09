@@ -22,7 +22,7 @@ MC_DICT = {
     "decay_time": 3,  # length of a typical transient in seconds
     "pw_rigid": False,  # flag for pw-rigid motion correction
     "max_shifts": (20, 20),  # maximum allowed rigid shift
-    "gSig_filt": (10, 10),  # size of filter, in general gSig (see below)
+    "gSig_filt": (5, 5),  # size of filter, in general gSig (see below)
     "strides": (48, 48),  # start a new patch for pw-rigid mc every x pixels
     "overlaps": (24, 24),  # overlap between pathes (size of patch strides+overlaps)
     "max_deviation_rigid": 3,  # maximum deviation allowed for patch with respect to rigid shifts
@@ -31,22 +31,22 @@ MC_DICT = {
 PARAM_DICT = {
     "method_init": "corr_pnr",  # use this for 1 photon
     "K": None,  # upper bound on number of components per patch, in general None for 1p data
-    "gSig": (10, 10),  # width of a 2D gaussian kernel, which approximates a neuron
-    "gSiz": (41, 41),  # average diameter of a neuron, in general 4*gSig+1
-    "merge_thr": 0.7,  # merging threshold, max correlation allowed
+    "gSig": (5, 5),  # width of a 2D gaussian kernel, which approximates a neuron
+    "gSiz": (21, 21),  # average diameter of a neuron, in general 4*gSig+1
+    "merge_thr": 0.65,  # merging threshold, max correlation allowed
     "p": 1,  # order of the autoregressive system
     "tsub": 10,  # downsampling factor in time for initialization
     "ssub": 1,  # downsampling factor in space for initialization
-    "rf": 80,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
-    "stride": 40,  # amount of overlap between the patches in pixels
+    "rf": 48,  # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    "stride": 24,  # amount of overlap between the patches in pixels
     "only_init": True,  # set it to True to run CNMF-E
     "nb": 0,  # number of background components (rank) if positive
     "nb_patch": 0,  # number of background components (rank) per patch if gnb>0
     "method_deconvolution": "oasis",  # could use 'cvxpy' alternatively
     "low_rank_background": None,  # None leaves background of each patch intact
     "update_background_components": True,  # sometimes setting to False improve the results
-    "min_corr": 0.95,  # min peak value from correlation image
-    "min_pnr": 20,  # min peak to noise ration from PNR image
+    "min_corr": 0.96,  # min peak value from correlation image
+    "min_pnr": 40,  # min peak to noise ration from PNR image
     "normalize_init": False,  # just leave as is
     "center_psf": True,  # leave as is for 1 photon
     "ssub_B": 2,  # additional downsampling factor in space for background
@@ -56,8 +56,15 @@ PARAM_DICT = {
 }
 QUALITY_DICT = {
     "min_SNR": 2.5,  # adaptive way to set threshold on the transient size
-    "rval_thr": 0.85,  # threshold on space consistency
     "use_cnn": False,
+}
+PARAM_PER_ANM = {
+    "eridanus": {"min_corr": 0.96, "min_pnr": 50},
+    "ferdinand": {"min_corr": 0.96, "min_pnr": 45},
+    "sao": {"min_corr": 0.96, "min_pnr": 35},
+    "grus": {"min_corr": 0.96, "min_pnr": 30},
+    "rhea": {"min_corr": 0.96, "min_pnr": 35},
+    "umbriel": {"min_corr": 0.96, "min_pnr": 40},
 }
 
 if __name__ == "__main__":
@@ -79,14 +86,20 @@ if __name__ == "__main__":
         #     outpath=os.path.join(outpath, "caiman_prof.csv"),
         #     nchild=20,
         # )
+        anm = root.split(os.sep)[-1]
+        params = PARAM_DICT.copy()
+        try:
+            params.update(PARAM_PER_ANM[anm])
+        except KeyError:
+            pass
         try:
             caiman_process(
                 root,
                 outpath,
                 CAIMAN_INT_PATH,
-                16,
+                4,
                 MC_DICT,
-                PARAM_DICT,
+                params,
                 QUALITY_DICT,
                 copy_to_int=True,
             )

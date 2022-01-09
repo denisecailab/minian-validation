@@ -93,6 +93,8 @@ def compute_metrics(
     C_true: xr.DataArray = None,
     f1_only=False,
     coarsen_factor=None,
+    dist_thres=15,
+    register=True,
 ) -> Tuple[float, pd.DataFrame]:
     chk_A = {"height": -1, "width": -1, "unit_id": 30}
     chk_S = {"frame": -1, "unit_id": 30}
@@ -102,56 +104,61 @@ def compute_metrics(
         A_true = true_ds["A"]
     A = A.compute().chunk(chk_A)
     A_true = A_true.compute().chunk(chk_A)
-    sumim = A.max("unit_id").compute().transpose("height", "width").values
-    sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
-    sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
-    A = (
-        xr.apply_ufunc(
-            shift_perframe,
-            A,
-            input_core_dims=[["height", "width"]],
-            output_core_dims=[["height", "width"]],
-            vectorize=True,
-            kwargs={"sh": sh, "fill": 0},
-            dask="parallelized",
+    if register:
+        sumim = A.max("unit_id").compute().transpose("height", "width").values
+        sumim_true = A_true.max("unit_id").compute().transpose("height", "width").values
+        sh, _, _ = phase_cross_correlation(sumim_true, sumim, upsample_factor=100)
+        A = (
+            xr.apply_ufunc(
+                shift_perframe,
+                A,
+                input_core_dims=[["height", "width"]],
+                output_core_dims=[["height", "width"]],
+                vectorize=True,
+                kwargs={"sh": sh, "fill": 0},
+                dask="parallelized",
+            )
+            .compute()
+            .chunk(chk_A)
         )
-        .compute()
-        .chunk(chk_A)
-    )
     cent = centroid(A)
     cent_true = centroid(A_true)
-    mapping = compute_mapping(cent_true, cent, 15)
+    mapping = compute_mapping(cent_true, cent, dist_thres)
     f1 = compute_f1(len(mapping), len(cent_true), len(cent))
     if f1_only:
         return f1
     Am = A.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_A)
     Am_true = A_true.compute().sel(unit_id=mapping["uidA"].values).chunk(chk_A)
-    if S is None:
+    if S is None and result_ds is not None:
         S = result_ds["S"]
-    if S_true is None:
+    if S_true is None and true_ds is not None:
         S_true = true_ds["S"]
-    S = S.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
-    S_true = (
-        S_true.compute()
-        .sel(unit_id=mapping["uidA"].values)
-        .transpose("unit_id", "frame")
-        .chunk(chk_S)
-    )
-    if coarsen_factor is not None:
-        S = S.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
-        S_true = S_true.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
-    if C is None:
+    if C is None and result_ds is not None:
         C = result_ds["C"]
-    if C_true is None:
+    if C_true is None and true_ds is not None:
         C_true = true_ds["C"]
-    C = C.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
-    C_true = (
-        C_true.compute()
-        .sel(unit_id=mapping["uidA"].values)
-        .transpose("unit_id", "frame")
-        .chunk(chk_S)
-    )
     mapping["Acorr"] = compute_cos(Am_true, Am)
-    mapping["Scorr"] = compute_cos(S, S_true)
-    mapping["Ccorr"] = compute_cos(C, C_true)
+    if S is not None and S_true is not None:
+        S = S.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
+        S_true = (
+            S_true.compute()
+            .sel(unit_id=mapping["uidA"].values)
+            .transpose("unit_id", "frame")
+            .chunk(chk_S)
+        )
+        if coarsen_factor is not None:
+            S = S.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
+            S_true = (
+                S_true.coarsen(frame=coarsen_factor, boundary="trim").mean().compute()
+            )
+        mapping["Scorr"] = compute_cos(S, S_true)
+    if C is not None and C_true is not None:
+        C = C.compute().sel(unit_id=mapping["uidB"].values).chunk(chk_S)
+        C_true = (
+            C_true.compute()
+            .sel(unit_id=mapping["uidA"].values)
+            .transpose("unit_id", "frame")
+            .chunk(chk_S)
+        )
+        mapping["Ccorr"] = compute_cos(C, C_true)
     return f1, mapping
