@@ -394,7 +394,7 @@ for var, vname in metric_dict.items():
 axs["contour"].text(
     0,
     1,
-    "a",
+    "A",
     transform=axs["contour"].transAxes
     + ScaledTranslation(-20 / 72, 10 / 72, fig.dpi_scale_trans),
     va="bottom",
@@ -404,7 +404,7 @@ axs["contour"].text(
 axs["f1"].text(
     0,
     1,
-    "b",
+    "B",
     transform=axs["f1"].transAxes
     + ScaledTranslation(-40 / 72, 10 / 72, fig.dpi_scale_trans),
     va="bottom",
