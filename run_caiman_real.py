@@ -56,12 +56,15 @@ PARAM_DICT = {
 }
 QUALITY_DICT = {
     "min_SNR": 2.5,  # adaptive way to set threshold on the transient size
-    "rval_thr": 0.85,  # threshold on space consistency
     "use_cnn": False,
 }
 PARAM_PER_ANM = {
-    "eridanus": {"min_corr": 0.98, "min_pnr": 50},
-    "ferdinand": {"min_corr": 0.98, "min_pnr": 50},
+    "eridanus": {"min_corr": 0.96, "min_pnr": 50},
+    "ferdinand": {"min_corr": 0.96, "min_pnr": 45},
+    "sao": {"min_corr": 0.96, "min_pnr": 35},
+    "grus": {"min_corr": 0.96, "min_pnr": 30},
+    "rhea": {"min_corr": 0.96, "min_pnr": 35},
+    "umbriel": {"min_corr": 0.96, "min_pnr": 40},
 }
 
 if __name__ == "__main__":
