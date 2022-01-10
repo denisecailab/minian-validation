@@ -44,8 +44,8 @@ prof_df = pd.concat(df_ls, ignore_index=True)
 
 #%% plot tradeoff
 ASPECT = 1.8
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
+SMALL_SIZE = 8
+MEDIUM_SIZE = 11
 BIG_SIZE = 11
 WIDTH = 3.94  # 10cm
 sns.set(
@@ -53,7 +53,7 @@ sns.set(
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica"],
+        "font.sans-serif": ["Arial"],
         "font.size": MEDIUM_SIZE,
         "axes.titlesize": MEDIUM_SIZE,
         "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
@@ -101,8 +101,8 @@ sns.lineplot(
     legend="brief",
     ax=ax,
 )
-ax.set_xlabel("Run Time (minutes)")
-ax.set_ylabel("Peak Memory (MB)")
+ax.set_xlabel("Run Time (minutes)", fontstyle="italic")
+ax.set_ylabel("Peak Memory (MB)", fontstyle="italic")
 ax.xaxis.set_major_formatter(EngFormatter())
 ax.yaxis.set_major_formatter(EngFormatter())
 ax.legend(
@@ -110,6 +110,8 @@ ax.legend(
     loc="center left",
     framealpha=0,
 )
+sns.despine(fig)
 fig.tight_layout()
 fig.savefig(os.path.join(FIG_TRADEOFF, "master.svg"))
 fig.savefig(os.path.join(FIG_TRADEOFF, "master.png"))
+fig.savefig(os.path.join(FIG_TRADEOFF, "master.tiff"))

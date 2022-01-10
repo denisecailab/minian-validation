@@ -23,7 +23,7 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from statsmodels.formula.api import ols
 
 from routine.minian_functions import open_minian
-from routine.plotting import ax_tick, format_tick
+from routine.plotting import ax_tick, format_tick, it_lab
 from routine.utilities import norm, quantile
 from routine.validation import compute_metrics
 
@@ -86,8 +86,8 @@ mapping_df.astype({"ncell": int, "sig": float}).to_feather(
 
 #%% plot simulated results
 ASPECT = 1.2
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
+SMALL_SIZE = 8
+MEDIUM_SIZE = 11
 BIG_SIZE = 11
 WIDTH = 7.87  # 20cm
 sns.set(
@@ -95,7 +95,7 @@ sns.set(
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica"],
+        "font.sans-serif": ["Arial"],
         "font.size": MEDIUM_SIZE,
         "axes.titlesize": MEDIUM_SIZE,
         "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
@@ -182,12 +182,14 @@ for mtype, mdf in metric_df.items():
         fig.map_dataframe(set_yaxis)
     fig.map_dataframe(ax_tick, x_var="sig")
     fig.map(format_tick, y_formatter=StrMethodFormatter("{x:.2f}"))
+    fig.map(it_lab)
     fig.add_legend()
     fig.set_xlabels("Signal Level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
     fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
+    fig.savefig(os.path.join(FIG_PATH, "simulated-{}.tiff".format(mtype)))
 
 #%% compute metrics on real datasets
 f1_ls = []
@@ -249,7 +251,7 @@ sns.set(
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica"],
+        "font.sans-serif": ["Arial"],
         "font.size": MEDIUM_SIZE,
         "axes.titlesize": MEDIUM_SIZE,
         "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
@@ -473,15 +475,15 @@ mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_pipeline.feather"))
 #%% plot pipeline comparison
 ASPECT = 0.6
 WIDTH = 5.51  # 14cm
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
+SMALL_SIZE = 8
+MEDIUM_SIZE = 11
 BIG_SIZE = 11
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica"],
+        "font.sans-serif": ["Arial"],
         "font.size": MEDIUM_SIZE,
         "axes.titlesize": MEDIUM_SIZE,
         "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
@@ -647,7 +649,7 @@ szbar = AnchoredSizeBar(
     size_vertical=0.06,
     frameon=False,
 )
-ax_tr.set_ylim(-0.7, nunits)
+ax_tr.set_ylim(-0.8, nunits + 0.2)
 legs, labs = ax_tr.get_legend_handles_labels()
 ax_tr.legend(legs[::-1], labs[::-1])
 # sns.despine()
@@ -676,3 +678,4 @@ fig.tight_layout(h_pad=1, w_pad=2)
 ax_tr.add_artist(szbar)
 fig.savefig(os.path.join(FIG_PATH, "pipeline.svg"))
 fig.savefig(os.path.join(FIG_PATH, "pipeline.png"))
+fig.savefig(os.path.join(FIG_PATH, "pipeline.tiff"))
