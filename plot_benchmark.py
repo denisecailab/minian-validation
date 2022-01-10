@@ -56,7 +56,7 @@ ASPECT = 1.4
 SMALL_SIZE = 8
 MEDIUM_SIZE = 11
 BIG_SIZE = 11
-WIDTH = 7.87  # 20cm
+WIDTH = 5.51  # 14cm
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
@@ -129,10 +129,11 @@ fig.map_dataframe(rename_axis)
 fig.map_dataframe(ax_tick, x_var="nfm")
 fig.map(format_tick, x_formatter=EngFormatter(), y_formatter=EngFormatter())
 fig.map(it_lab)
-fig.add_legend()
+fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
 fig.set_xlabels("Frame Number")
 fig.set_titles(row_template="", col_template="{col_name} cells")
-fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
+fig.figure.tight_layout()
+fig.add_legend()
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.svg"))
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.png"))
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.tiff"))
