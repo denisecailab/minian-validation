@@ -13,7 +13,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import EngFormatter
 
-from routine.plotting import ax_tick, format_tick
+from routine.plotting import ax_tick, format_tick, it_lab
 
 IN_DPATH = "./data/simulated/benchmark"
 IN_PROF_FILES = {"minian": "minian_prof.csv", "caiman": "caiman_prof.csv"}
@@ -53,16 +53,16 @@ prof_df = pd.concat(df_ls, ignore_index=True)
 
 #%% plot overall performance
 ASPECT = 1.4
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
+SMALL_SIZE = 8
+MEDIUM_SIZE = 11
 BIG_SIZE = 11
-WIDTH = 7.87  # 20cm
+WIDTH = 5.51  # 14cm
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),
         "figure.dpi": 500,
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica"],
+        "font.sans-serif": ["Arial"],
         "font.size": MEDIUM_SIZE,
         "axes.titlesize": MEDIUM_SIZE,
         "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
@@ -128,9 +128,12 @@ fig.map_dataframe(
 fig.map_dataframe(rename_axis)
 fig.map_dataframe(ax_tick, x_var="nfm")
 fig.map(format_tick, x_formatter=EngFormatter(), y_formatter=EngFormatter())
-fig.add_legend()
+fig.map(it_lab)
+fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
 fig.set_xlabels("Frame Number")
 fig.set_titles(row_template="", col_template="{col_name} cells")
-fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
+fig.figure.tight_layout()
+fig.add_legend()
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.svg"))
 fig.savefig(os.path.join(FIG_BENCH_ALL, "master.png"))
+fig.savefig(os.path.join(FIG_BENCH_ALL, "master.tiff"))

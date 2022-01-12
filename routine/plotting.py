@@ -15,3 +15,9 @@ def format_tick(x_formatter=None, y_formatter=None, **kwargs):
         ax.xaxis.set_major_formatter(x_formatter)
     if y_formatter is not None:
         ax.yaxis.set_major_formatter(y_formatter)
+
+
+def it_lab(**kwargs):
+    ax = plt.gca()
+    ax.set_xlabel(ax.get_xlabel(), fontstyle="italic")
+    ax.set_ylabel(ax.get_ylabel(), fontstyle="italic")
