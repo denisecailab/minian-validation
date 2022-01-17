@@ -473,7 +473,7 @@ f1_df.to_feather(os.path.join(OUT_PATH, "f1_pipeline.feather"))
 mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_pipeline.feather"))
 
 #%% plot pipeline comparison
-ASPECT = 0.6
+ASPECT = 0.8
 WIDTH = 5.51  # 14cm
 SMALL_SIZE = 8
 MEDIUM_SIZE = 11
@@ -563,7 +563,7 @@ print(
 )
 # plot
 fig, axs = plt.subplot_mosaic(
-    layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1.2, 1)}
+    layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1.6, 1)}
 )
 ax_im = axs["image"]
 im_minian = np.clip(
@@ -622,7 +622,7 @@ legends = [
 ]
 ax_im.imshow(hsv_to_rgb(hsv_ovly))
 ax_im.set_xlim(0, 550)
-ax_im.set_ylim(50, 600)
+ax_im.set_ylim(100, 600)
 ax_im.set_axis_off()
 ax_im.invert_yaxis()
 ax_im.legend(handles=legends, facecolor="dimgray", labelcolor="white")
@@ -634,7 +634,7 @@ for ir, row in mapping_sub.iterrows():
         + ir * offset_unit
         + offset_pipeline
     )
-    (lineB,) = ax_tr.plot(trB, color=palette["CaImAn"], linewidth=4)
+    (lineB,) = ax_tr.plot(trB, color=palette["CaImAn"], linewidth=3)
     (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=2)
     if ir == 0:
         lineA.set_label("Minian")
@@ -649,9 +649,9 @@ szbar = AnchoredSizeBar(
     size_vertical=0.06,
     frameon=False,
 )
-ax_tr.set_ylim(-0.8, nunits + 0.2)
+ax_tr.set_ylim(-1.5, nunits + 1.1)
 legs, labs = ax_tr.get_legend_handles_labels()
-ax_tr.legend(legs[::-1], labs[::-1])
+ax_tr.legend(legs[::-1], labs[::-1], loc="upper right")
 # sns.despine()
 ax_tr.set_axis_off()
 ax_im.text(
