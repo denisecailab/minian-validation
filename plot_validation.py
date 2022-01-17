@@ -55,8 +55,8 @@ for root, dirs, files in os.walk(IN_SIM_DPATH):
         "unit_id", "frame", "height", "width"
     )
     truth_ds = open_minian(os.path.join(root, truth_ds))
-    f1_minian, mapping_minian = compute_metrics(minian_ds, truth_ds, coarsen_factor=10)
-    f1_caiman, mapping_caiman = compute_metrics(caiman_ds, truth_ds, coarsen_factor=10)
+    f1_minian, mapping_minian = compute_metrics(minian_ds, truth_ds, coarsen_factor=60)
+    f1_caiman, mapping_caiman = compute_metrics(caiman_ds, truth_ds, coarsen_factor=60)
     sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
     mapping_minian["sig"] = sig
     mapping_caiman["sig"] = sig
@@ -164,7 +164,7 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        row_order=["f1", "Acorr", "Ccorr"],
+        row_order=["f1", "Acorr", "Ccorr", "Scorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
