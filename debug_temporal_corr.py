@@ -16,6 +16,9 @@ from routine.plotting import ax_tick, format_tick
 from routine.utilities import norm
 from routine.validation import compute_metrics
 from scipy.ndimage import gaussian_filter1d
+from scipy.signal import correlate
+
+from routine.utilities import standarize
 
 hv.notebook_extension("bokeh")
 
@@ -48,29 +51,46 @@ C_minian = norm(minian_ds["C"].sel(unit_id=mp_minian["uidB"])).compute()
 C_caiman = norm(caiman_ds["C"].sel(unit_id=mp_caiman["uidB"])).compute()
 C_true = norm(truth_ds["C"].sel(unit_id=uid)).compute()
 # back = ya - C_true
-S_minian = norm(minian_ds["S"].sel(unit_id=mp_minian["uidB"]))
-S_caiman = norm(caiman_ds["S"].sel(unit_id=mp_caiman["uidB"]))
+S_minian = minian_ds["S"].sel(unit_id=mp_minian["uidB"])
+S_caiman = caiman_ds["S"].sel(unit_id=mp_caiman["uidB"])
 S_true = truth_ds["S"].sel(unit_id=uid)
-ds_factor = 10
+ds_factor = 5
 S_true = S_true.coarsen(frame=ds_factor, boundary="trim").mean().compute()
 S_minian = S_minian.coarsen(frame=ds_factor, boundary="trim").mean().compute()
 S_caiman = S_caiman.coarsen(frame=ds_factor, boundary="trim").mean().compute()
+# S_true = gaussian_filter1d(S_true, 10)
+# S_minian = gaussian_filter1d(S_minian, 10)
+# S_caiman = gaussian_filter1d(S_caiman, 10)
+S_minian = norm(S_minian)
+S_caiman = norm(S_caiman)
+S_true = norm(S_true)
 print(
     "minian corr: {} caiman corr: {}".format(
         np.corrcoef(S_true, S_minian)[0, 1], np.corrcoef(S_true, S_caiman)[0, 1]
     )
 )
+ccorr_minian = correlate(standarize(S_true), standarize(S_minian), method="fft") / len(
+    S_true
+)
+ccorr_caiman = correlate(standarize(S_true), standarize(S_caiman), method="fft") / len(
+    S_true
+)
+print(
+    "minian cross-corr: {} caiman cross-corr: {}".format(
+        np.max(ccorr_minian), np.max(ccorr_caiman)
+    )
+)
 hvres = (
     hv.Curve(S_true, ["frame"], label="S_true").opts(**opts_cv)
-    * hv.Curve(C_true, ["frame"], label="C_true").opts(**opts_cv)
+    # * hv.Curve(C_true, ["frame"], label="C_true").opts(**opts_cv)
     * hv.Curve(S_minian, ["frame"], label="S_minian").opts(**opts_cv)
-    * hv.Curve(C_minian, ["frame"], label="C_minian").opts(**opts_cv)
+    # * hv.Curve(C_minian, ["frame"], label="C_minian").opts(**opts_cv)
     # * hv.Curve(ya, ["frame"], label="raw").opts(**opts_cv)
     # * hv.Curve(back, ["frame"], label="diff").opts(**opts_cv)
     + hv.Curve(S_true, ["frame"], label="S_true").opts(**opts_cv)
-    * hv.Curve(C_true, ["frame"], label="C_true").opts(**opts_cv)
+    # * hv.Curve(C_true, ["frame"], label="C_true").opts(**opts_cv)
     * hv.Curve(S_caiman, ["frame"], label="S_caiman").opts(**opts_cv)
-    * hv.Curve(C_caiman, ["frame"], label="C_caiman").opts(**opts_cv)
+    # * hv.Curve(C_caiman, ["frame"], label="C_caiman").opts(**opts_cv)
 ).cols(1)
 hv.save(hvres, "temp_corr.html")
 hvres
