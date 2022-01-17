@@ -22,3 +22,7 @@ def quantile(a, q, exclude_zero=True):
     if exclude_zero:
         a = a[a > 0]
     return np.quantile(a, q)
+
+
+def standarize(a):
+    return (a - np.mean(a)) / np.std(a)
