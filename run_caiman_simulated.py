@@ -6,6 +6,7 @@ env: environments/caiman.yml
 
 import logging
 import os
+import re
 import shutil
 import warnings
 
@@ -58,6 +59,11 @@ QUALITY_DICT = {
     "rval_thr": 0.8,  # threshold on space consistency
     "use_cnn": False,
 }
+PARAM_PER_SIG = {
+    "0.2": {"min_pnr": 8, "min_corr": 0.9},
+    # "0.4": {"min_pnr": 10, "min_corr": 0.9},
+}
+QUALITY_PER_SIG = {"0.2": {"min_SNR": 1, "rval_thr": 0.7}}
 
 if __name__ == "__main__":
     DPATH = os.path.abspath(DPATH)
@@ -69,6 +75,17 @@ if __name__ == "__main__":
         avifiles = list(filter(lambda f: f.endswith(".avi"), files))
         if not avifiles:
             continue
+        sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
+        params = PARAM_DICT.copy()
+        try:
+            params.update(PARAM_PER_SIG[sig])
+        except KeyError:
+            continue
+        quality = QUALITY_DICT.copy()
+        try:
+            quality.update(QUALITY_PER_SIG[sig])
+        except KeyError:
+            pass
         profiler = PipelineProfiler(
             proc=os.getpid(),
             interval=0.2,
@@ -84,8 +101,8 @@ if __name__ == "__main__":
                 CAIMAN_INT_PATH,
                 4,
                 MC_DICT,
-                PARAM_DICT,
-                QUALITY_DICT,
+                params,
+                quality,
                 profiler,
                 copy_to_int=True,
             )
