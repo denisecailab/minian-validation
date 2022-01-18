@@ -164,7 +164,7 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        row_order=["f1", "Acorr", "Ccorr", "Scorr"],
+        row_order=["f1", "Acorr", "Ccorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
