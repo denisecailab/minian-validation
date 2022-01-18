@@ -15,10 +15,10 @@ import pandas as pd
 import seaborn as sns
 import xarray as xr
 from matplotlib import cm
+from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
+from matplotlib.lines import Line2D
 from matplotlib.ticker import StrMethodFormatter
 from matplotlib.transforms import ScaledTranslation
-from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
-from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from statsmodels.formula.api import ols
 
@@ -36,6 +36,7 @@ FIG_PATH = "./fig/validation/"
 IN_GT_MAPPING = "gt_mapping.csv"
 IN_CONT_PATH = "./data/real/sao"
 IN_EXP_PATH = "./data/real/ferdinand"
+IN_SIM_S_PATH = "./data/simulated/validation/sig1.8-cell100"
 
 os.makedirs(OUT_PATH, exist_ok=True)
 os.makedirs(FIG_PATH, exist_ok=True)
@@ -190,6 +191,147 @@ for mtype, mdf in metric_df.items():
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.tiff".format(mtype)))
+
+#%% plot deconvolved traces
+ASPECT = 1.1
+SMALL_SIZE = 8
+MEDIUM_SIZE = 11
+BIG_SIZE = 11
+WIDTH = 7.87  # 20cm
+sns.set(
+    rc={
+        "figure.figsize": (WIDTH, WIDTH / ASPECT),
+        "figure.dpi": 500,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial"],
+        "font.size": MEDIUM_SIZE,
+        "axes.titlesize": MEDIUM_SIZE,
+        "axes.labelsize": MEDIUM_SIZE,  # size of faceting titles
+        "xtick.labelsize": SMALL_SIZE,
+        "ytick.labelsize": SMALL_SIZE,
+        "legend.fontsize": MEDIUM_SIZE,
+        "figure.titlesize": BIG_SIZE,
+        "legend.edgecolor": "gray",
+        # "axes.linewidth": 0.4,
+        # "axes.facecolor": "white",
+        "xtick.major.size": 2,
+        "xtick.major.width": 0.4,
+        "xtick.minor.visible": True,
+        "xtick.minor.size": 1,
+        "xtick.minor.width": 0.4,
+        "ytick.major.size": 2,
+        "ytick.major.width": 0.4,
+        "ytick.minor.visible": True,
+        "ytick.minor.size": 1,
+        "ytick.minor.width": 0.4,
+    }
+)
+sns.set_style("ticks")
+corr_ylim = (0, 1.1)
+corr_ylab = "Deconvolved Correlation"
+corr_xlab = "Signal Level"
+layout = [["100", "300", "500"], ["traces", "traces", "traces"]]
+offset_pipeline = 0
+offset_unit = 1.1
+nunits = 5
+palette = {"Minian": "darkblue", "CaImAn": "red", "Ground Truth": "C2"}
+# process data
+minian_ds = open_minian(os.path.join(IN_SIM_S_PATH, IN_MINIAN_RESULT_PAT))
+truth_ds = open_minian(os.path.join(IN_SIM_S_PATH, "simulated"))
+mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_simulated.feather"))
+mapping_df = mapping_df[mapping_df["pipeline"] == "minian"]
+sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", IN_SIM_S_PATH).groups()
+mapping_sub = (
+    mapping_df[(mapping_df["sig"] == float(sig)) & (mapping_df["ncell"] == int(ncell))]
+    .sort_values("Scorr", ascending=False)[:nunits]
+    .reset_index(drop=True)
+)
+# plot
+fig, axs = plt.subplot_mosaic(
+    layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1, 1.3)}
+)
+for ncell, subdf in mapping_df.groupby("ncell"):
+    cur_ax = axs[str(ncell)]
+    sns.lineplot(
+        data=subdf,
+        x="sig",
+        y="Scorr",
+        ax=cur_ax,
+        marker="o",
+        err_style="band",
+        ci="sd",
+    )
+    cur_ax.set_ylim(corr_ylim)
+    cur_ax.set_xlabel(corr_xlab)
+    cur_ax.set_title("{} cells".format(ncell))
+    ax_tick(data=subdf, ax=cur_ax, x_var="sig")
+    format_tick(ax=cur_ax, y_formatter=StrMethodFormatter("{x:.2f}"))
+    if ncell == 100:
+        cur_ax.set_ylabel(corr_ylab)
+    else:
+        cur_ax.set_ylabel("")
+        cur_ax.set_yticklabels([])
+    it_lab(ax=cur_ax)
+ax_tr = axs["traces"]
+for ir, row in mapping_sub.iterrows():
+    trA = norm(minian_ds["S"].sel(unit_id=row["uidB"])) + ir * offset_unit
+    trB = (
+        norm(truth_ds["S"].sel(unit_id=row["uidA"]))
+        + ir * offset_unit
+        + offset_pipeline
+    )
+    (lineB,) = ax_tr.plot(trB, color=palette["Ground Truth"], linewidth=2)
+    (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=1.5)
+    if ir == 0:
+        lineA.set_label("Minian")
+        lineB.set_label("Ground Truth")
+ax_tr.set_ylim(-1.3, nunits * offset_unit + 1.6)
+ax_tr.set_xlim(-100, 5000)
+legs, labs = ax_tr.get_legend_handles_labels()
+ax_tr.legend(legs[::-1], labs[::-1], loc="upper right")
+ax_tr.set_yticks(np.arange(nunits) * offset_unit + offset_unit / 2)
+ax_tr.set_yticklabels(["Cell {}".format(i) for i in range(nunits, 0, -1)])
+ax_tr.get_yaxis().set_tick_params(width=0)
+ax_tr.minorticks_off()
+ax_tr.get_xaxis().set_visible(False)
+ax_tr.spines["left"].set_lw(0)
+ax_tr.spines["bottom"].set_lw(0)
+szbar = AnchoredSizeBar(
+    ax_tr.transData,
+    600,
+    "10 sec",
+    loc="lower right",
+    pad=1,
+    sep=4,
+    size_vertical=0.06,
+    frameon=False,
+)
+ax0 = axs["100"]
+ax0.text(
+    0,
+    1,
+    "A",
+    transform=ax0.transAxes + ScaledTranslation(-20 / 72, 10 / 72, fig.dpi_scale_trans),
+    va="bottom",
+    fontweight="bold",
+    fontsize="x-large",
+)
+ax_tr.text(
+    0,
+    1,
+    "B",
+    transform=ax_tr.transAxes
+    + ScaledTranslation(-20 / 72, 2 / 72, fig.dpi_scale_trans),
+    va="bottom",
+    fontweight="bold",
+    fontsize="x-large",
+)
+sns.despine()
+fig.tight_layout()
+ax_tr.add_artist(szbar)
+fig.savefig(os.path.join(FIG_PATH, "deconvolved.svg"))
+fig.savefig(os.path.join(FIG_PATH, "deconvolved.png"))
+fig.savefig(os.path.join(FIG_PATH, "deconvolved.tiff"))
 
 #%% compute metrics on real datasets
 f1_ls = []
