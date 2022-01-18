@@ -663,7 +663,7 @@ palette = {"Minian": "darkblue", "CaImAn": "red", "Manual": "C2"}
 ylim_dict = {"Acorr": (0, 1), "Ccorr": (0, 1), "f1": (0, 1)}
 max_proj_range = (0, 20)
 offset_pipeline = 0
-offset_unit = 1
+offset_unit = 1.2
 nunits = 5
 brt_offset = 0
 q_clip = 0.98
@@ -776,8 +776,8 @@ for ir, row in mapping_sub.iterrows():
         + ir * offset_unit
         + offset_pipeline
     )
-    (lineB,) = ax_tr.plot(trB, color=palette["CaImAn"], linewidth=3)
-    (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=2)
+    (lineB,) = ax_tr.plot(trB, color=palette["CaImAn"], linewidth=2)
+    (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=1.5)
     if ir == 0:
         lineA.set_label("Minian")
         lineB.set_label("CaImAn")
@@ -786,16 +786,23 @@ szbar = AnchoredSizeBar(
     900,
     "30 sec",
     loc="lower right",
-    pad=1,
+    pad=0,
     sep=4,
     size_vertical=0.06,
     frameon=False,
 )
-ax_tr.set_ylim(-1.5, nunits + 1.1)
+ax_tr.set_ylim(-1.2, nunits * offset_unit + 1.4)
 legs, labs = ax_tr.get_legend_handles_labels()
 ax_tr.legend(legs[::-1], labs[::-1], loc="upper right")
-# sns.despine()
-ax_tr.set_axis_off()
+sns.despine(ax=ax_tr)
+# ax_tr.set_axis_off()
+ax_tr.set_yticks(np.arange(nunits) * offset_unit + offset_unit / 4)
+ax_tr.set_yticklabels(["Cell {}".format(i) for i in range(nunits, 0, -1)])
+ax_tr.get_yaxis().set_tick_params(width=0)
+ax_tr.minorticks_off()
+ax_tr.get_xaxis().set_visible(False)
+ax_tr.spines["left"].set_lw(0)
+ax_tr.spines["bottom"].set_lw(0)
 ax_im.text(
     0,
     1,
@@ -816,7 +823,7 @@ ax_tr.text(
     fontweight="bold",
     fontsize="x-large",
 )
-fig.tight_layout(h_pad=1, w_pad=2)
+fig.tight_layout(h_pad=1)
 ax_tr.add_artist(szbar)
 fig.savefig(os.path.join(FIG_PATH, "pipeline.svg"))
 fig.savefig(os.path.join(FIG_PATH, "pipeline.png"))
