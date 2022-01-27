@@ -36,7 +36,6 @@ FIG_PATH = "./fig/validation/"
 IN_GT_MAPPING = "gt_mapping.csv"
 IN_CONT_PATH = "./data/real/sao"
 IN_EXP_PATH = "./data/real/ferdinand"
-IN_SIM_S_PATH = "./data/simulated/validation/sig1.8-cell100"
 
 os.makedirs(OUT_PATH, exist_ok=True)
 os.makedirs(FIG_PATH, exist_ok=True)
@@ -233,22 +232,20 @@ corr_xlab = "Signal Level"
 layout = [["100", "300", "500"], ["traces", "traces", "traces"]]
 offset_pipeline = 0
 offset_unit = 1.1
-nunits = 5
 palette = {"Minian": "darkblue", "CaImAn": "red", "Ground Truth": "C2"}
 # process data
-minian_ds = open_minian(os.path.join(IN_SIM_S_PATH, IN_MINIAN_RESULT_PAT))
-truth_ds = open_minian(os.path.join(IN_SIM_S_PATH, "simulated"))
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_simulated.feather"))
 mapping_df = mapping_df[mapping_df["pipeline"] == "minian"]
-sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", IN_SIM_S_PATH).groups()
-mapping_sub = (
-    mapping_df[(mapping_df["sig"] == float(sig)) & (mapping_df["ncell"] == int(ncell))]
-    .sort_values("Scorr", ascending=False)[:nunits]
-    .reset_index(drop=True)
-)
+mapping_sub_ls = []
+for (sig, ncell), subdf in mapping_df.groupby(["sig", "ncell"]):
+    if ncell != 100:
+        continue
+    row = subdf.sort_values("Scorr").iloc[[int(len(subdf) / 2)]]
+    mapping_sub_ls.append(row)
+mapping_sub = pd.concat(mapping_sub_ls, ignore_index=True)
 # plot
 fig, axs = plt.subplot_mosaic(
-    layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1, 1.3)}
+    layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1, 1.5)}
 )
 for ncell, subdf in mapping_df.groupby("ncell"):
     cur_ax = axs[str(ncell)]
@@ -274,23 +271,34 @@ for ncell, subdf in mapping_df.groupby("ncell"):
     it_lab(ax=cur_ax)
 ax_tr = axs["traces"]
 for ir, row in mapping_sub.iterrows():
-    trA = norm(minian_ds["S"].sel(unit_id=row["uidB"])) + ir * offset_unit
-    trB = (
-        norm(truth_ds["S"].sel(unit_id=row["uidA"]))
-        + ir * offset_unit
-        + offset_pipeline
+    sig = row["sig"]
+    ncell = row["ncell"]
+    if sig == int(sig):
+        sig = int(sig)
+    minian_ds = open_minian(
+        os.path.join(
+            IN_SIM_DPATH, "sig{}-cell{}".format(sig, ncell), IN_MINIAN_RESULT_PAT
+        )
     )
+    truth_ds = open_minian(
+        os.path.join(IN_SIM_DPATH, "sig{}-cell{}".format(sig, ncell), "simulated")
+    )
+    trA = minian_ds["S"].sel(unit_id=row["uidB"]).compute()
+    trB = truth_ds["S"].sel(unit_id=row["uidA"]).compute()
+    norm_fac = np.quantile(trA[trB > 0], 0.92)
+    trA = np.clip(trA / norm_fac, 0, 1) + ir * offset_unit
+    trB = trB + ir * offset_unit + offset_pipeline
     (lineB,) = ax_tr.plot(trB, color=palette["Ground Truth"], linewidth=2)
     (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=1.5)
     if ir == 0:
         lineA.set_label("Minian")
         lineB.set_label("Ground Truth")
-ax_tr.set_ylim(-1.3, nunits * offset_unit + 1.6)
-ax_tr.set_xlim(-100, 5000)
+ax_tr.set_ylim(-1.3, len(mapping_sub) * offset_unit + 1.6)
+ax_tr.set_xlim(-50, 5000)
 legs, labs = ax_tr.get_legend_handles_labels()
 ax_tr.legend(legs[::-1], labs[::-1], loc="upper right")
-ax_tr.set_yticks(np.arange(nunits) * offset_unit + offset_unit / 2)
-ax_tr.set_yticklabels(["Cell {}".format(i) for i in range(nunits, 0, -1)])
+ax_tr.set_yticks(np.arange(len(mapping_sub)) * offset_unit + offset_unit / 2)
+ax_tr.set_yticklabels(["Signal Level {}".format(s) for s in mapping_sub["sig"]])
 ax_tr.get_yaxis().set_tick_params(width=0)
 ax_tr.minorticks_off()
 ax_tr.get_xaxis().set_visible(False)
