@@ -12,7 +12,7 @@ import numpy as np
 from routine.pipeline_minian import minian_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/benchmark"
+DPATH = "./data/simulated/validation"
 MINIAN_INT_PATH = "~/var/minian-validation/intermediate"
 
 MINIAN_PARAMS = {
@@ -55,12 +55,12 @@ MINIAN_PARAMS = {
     },
     "first_temporal": {
         "noise_freq": 0.06,
-        "sparse_penal": 1e-3,
-        "p": 1,
+        "sparse_penal": 10,
+        "p": 2,
         "add_lag": 100,
         "jac_thres": 0.2,
         "med_wd": None,
-        "use_smooth": False,
+        "use_smooth": True,
     },
     "first_merge": {"thres_corr": 0.6},
     "second_spatial": {
@@ -71,12 +71,12 @@ MINIAN_PARAMS = {
     },
     "second_temporal": {
         "noise_freq": 0.06,
-        "sparse_penal": 1e-3,
-        "p": 1,
+        "sparse_penal": 10,
+        "p": 2,
         "add_lag": 100,
         "jac_thres": 0.4,
         "med_wd": None,
-        "use_smooth": False,
+        "use_smooth": True,
     },
 }
 
