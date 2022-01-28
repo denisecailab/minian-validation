@@ -19,6 +19,7 @@ IN_DPATH = "./data/simulated/benchmark"
 IN_PROF_FILES = {"minian": "minian_prof.csv", "caiman": "caiman_prof.csv"}
 IN_DIR_PATTERN = r"fm(?P<nfm>[0-9]+)-cell(?P<ncell>[0-9]+)"
 FIG_BENCH_ALL = "./fig/benchmark/overall"
+OUT_CSV_PATH = "./output/Figure18"
 
 os.makedirs(FIG_BENCH_ALL, exist_ok=True)
 
@@ -107,6 +108,8 @@ prof_agg = (
 )
 prof_agg["duration"] = prof_agg["duration"] / 60
 prof_agg = prof_agg.melt(id_vars=id_vars)
+os.makedirs(OUT_CSV_PATH, exist_ok=True)
+prof_agg.to_csv(os.path.join(OUT_CSV_PATH, "benchmark.csv"), index=False)
 fig = sns.FacetGrid(
     prof_agg,
     row="variable",

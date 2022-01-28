@@ -36,6 +36,9 @@ FIG_PATH = "./fig/validation/"
 IN_GT_MAPPING = "gt_mapping.csv"
 IN_CONT_PATH = "./data/real/sao"
 IN_EXP_PATH = "./data/real/ferdinand"
+OUT_SIM_PATH = "./output/Figure15"
+OUT_DV_PATH = "./output/Figure16"
+OUT_REAL_PATH = "./output/Figure17"
 
 os.makedirs(OUT_PATH, exist_ok=True)
 os.makedirs(FIG_PATH, exist_ok=True)
@@ -158,6 +161,9 @@ f1_df = pd.read_feather(os.path.join(OUT_PATH, "f1_simulated.feather")).replace(
 
 for mtype, mdf in metric_df.items():
     df = mdf.merge(f1_df, on=id_vars, validate="one_to_one").melt(id_vars=id_vars)
+    if mtype == "median":
+        os.makedirs(OUT_SIM_PATH, exist_ok=True)
+        df.to_csv(os.path.join(OUT_SIM_PATH, "simulated_validation.csv"), index=False)
     fig = sns.FacetGrid(
         df,
         row="variable",
@@ -247,6 +253,8 @@ mapping_sub = pd.concat(mapping_sub_ls, ignore_index=True)
 fig, axs = plt.subplot_mosaic(
     layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1, 1.5)}
 )
+os.makedirs(OUT_DV_PATH, exist_ok=True)
+mapping_df.to_csv(os.path.join(OUT_DV_PATH, "deconvolved_correlation.csv"), index=False)
 for ncell, subdf in mapping_df.groupby("ncell"):
     cur_ax = axs[str(ncell)]
     sns.lineplot(
@@ -285,6 +293,8 @@ for ir, row in mapping_sub.iterrows():
     )
     trA = minian_ds["S"].sel(unit_id=row["uidB"]).compute()
     trB = truth_ds["S"].sel(unit_id=row["uidA"]).compute()
+    trA.to_netcdf(os.path.join(OUT_DV_PATH, "trace_sig{}_minian.nc".format(sig)))
+    trB.to_netcdf(os.path.join(OUT_DV_PATH, "trace_sig{}_caiman.nc".format(sig)))
     norm_fac = np.quantile(trA[trB > 0], 0.92)
     trA = np.clip(trA / norm_fac, 0, 1) + ir * offset_unit
     trB = trB + ir * offset_unit + offset_pipeline
@@ -716,6 +726,9 @@ fig, axs = plt.subplot_mosaic(
     layout, figsize=(WIDTH, WIDTH / ASPECT), gridspec_kw={"height_ratios": (1.6, 1)}
 )
 ax_im = axs["image"]
+os.makedirs(OUT_REAL_PATH, exist_ok=True)
+A_minian.to_netcdf(os.path.join(OUT_REAL_PATH, "spatial_footprint_minian.nc"))
+A_caiman.to_netcdf(os.path.join(OUT_REAL_PATH, "spatial_footprint_caiman.nc"))
 im_minian = np.clip(
     cm.ScalarMappable(cmap=cc.m_linear_ternary_blue_0_44_c57).to_rgba(A_minian.values)
     + brt_offset,
@@ -778,12 +791,12 @@ ax_im.invert_yaxis()
 ax_im.legend(handles=legends, facecolor="dimgray", labelcolor="white")
 ax_tr = axs["traces"]
 for ir, row in mapping_sub.iterrows():
-    trA = norm(minian_ds["C"].sel(unit_id=row["uidA"])) + ir * offset_unit
-    trB = (
-        norm(caiman_ds["C"].sel(unit_id=row["uidB"]))
-        + ir * offset_unit
-        + offset_pipeline
-    )
+    trA = norm(minian_ds["C"].sel(unit_id=row["uidA"]))
+    trB = norm(caiman_ds["C"].sel(unit_id=row["uidB"]))
+    trA.to_netcdf(os.path.join(OUT_REAL_PATH, "trace_cell{}_minian.nc".format(ir + 1)))
+    trB.to_netcdf(os.path.join(OUT_REAL_PATH, "trace_cell{}_caiman.nc".format(ir + 1)))
+    trA = trA + ir * offset_unit
+    trB = trB + ir * offset_unit + offset_pipeline
     (lineB,) = ax_tr.plot(trB, color=palette["CaImAn"], linewidth=2)
     (lineA,) = ax_tr.plot(trA, color=palette["Minian"], linewidth=1.5)
     if ir == 0:
