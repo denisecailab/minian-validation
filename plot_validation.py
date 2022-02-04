@@ -294,7 +294,7 @@ for ir, row in mapping_sub.iterrows():
     trA = minian_ds["S"].sel(unit_id=row["uidB"]).compute()
     trB = truth_ds["S"].sel(unit_id=row["uidA"]).compute()
     trA.to_netcdf(os.path.join(OUT_DV_PATH, "trace_sig{}_minian.nc".format(sig)))
-    trB.to_netcdf(os.path.join(OUT_DV_PATH, "trace_sig{}_caiman.nc".format(sig)))
+    trB.to_netcdf(os.path.join(OUT_DV_PATH, "trace_sig{}_truth.nc".format(sig)))
     norm_fac = np.quantile(trA[trB > 0], 0.92)
     trA = np.clip(trA / norm_fac, 0, 1) + ir * offset_unit
     trB = trB + ir * offset_unit + offset_pipeline
