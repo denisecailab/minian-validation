@@ -16,6 +16,7 @@ from matplotlib.ticker import EngFormatter
 IN_DPATH = "./store/tradeoff"
 IN_PROF_PATTERN = r"^(?P<pipeline>minian|caiman)_prof_ps(?P<nps>[0-9]+)\.csv$"
 FIG_TRADEOFF = "./fig/benchmark/tradeoff"
+OUT_CSV_PATH = "./output/Figure19"
 
 os.makedirs(FIG_TRADEOFF, exist_ok=True)
 
@@ -89,6 +90,8 @@ prof_agg = (
 )
 prof_agg["duration"] = prof_agg["duration"] / 60
 prof_agg = prof_agg[prof_agg["nps"] <= 5]
+os.makedirs(OUT_CSV_PATH, exist_ok=True)
+prof_agg.to_csv(os.path.join(OUT_CSV_PATH, "tradeoff.csv"), index=False)
 fig, ax = plt.subplots()
 sns.lineplot(
     data=prof_agg,
