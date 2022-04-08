@@ -1,5 +1,5 @@
 channels:
   - conda-forge
 dependencies:
-  - minian
+  - minian==1.2.1
   - memory_profiler

@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import xarray as xr
 from dask.distributed import Client, LocalCluster
 from memory_profiler import memory_usage
 from minian.cnmf import (
@@ -9,12 +10,11 @@ from minian.cnmf import (
     unit_merge,
     update_spatial,
     update_temporal,
+    update_background,
 )
 from minian.initialization import (
     initA,
-    initbf,
     initC,
-    ks_refine,
     pnr_refine,
     seeds_init,
     seeds_merge,
@@ -116,7 +116,7 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
         overwrite=True,
         chunks={"unit_id": -1, "frame": chk["frame"]},
     )
-    b, f = initbf(Y_fm_chk, A, C_chk)
+    b, f = update_background(Y_fm_chk, A, C_chk)
     f = save_minian(f.rename("f"), intpath, overwrite=True)
     b = save_minian(b.rename("b"), intpath, overwrite=True)
     # cnmf
@@ -124,9 +124,22 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
     sn_spatial = get_noise_fft(Y_hw_chk, **param["get_noise"])
     sn_spatial = save_minian(sn_spatial.rename("sn_spatial"), intpath, overwrite=True)
     ## first iteration
-    A_new, b_new, f_new, mask = update_spatial(
-        Y_hw_chk, A, b, C, f, sn_spatial, **param["first_spatial"]
+    A_new, mask, norm_fac = update_spatial(
+        Y_hw_chk,
+        A,
+        C,
+        sn_spatial,
+        **param["first_spatial"],
     )
+    C_new = save_minian(
+        (C.sel(unit_id=mask) * norm_fac).rename("C_new"), intpath, overwrite=True
+    )
+    C_chk_new = save_minian(
+        (C_chk.sel(unit_id=mask) * norm_fac).rename("C_chk_new"),
+        intpath,
+        overwrite=True,
+    )
+    b_new, f_new = update_background(Y_fm_chk, A_new, C_chk_new)
     A = save_minian(
         A_new.rename("A"),
         intpath,
@@ -137,8 +150,8 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
     f = save_minian(
         f_new.chunk({"frame": chk["frame"]}).rename("f"), intpath, overwrite=True
     )
-    C = C.sel(unit_id=A.coords["unit_id"].values)
-    C_chk = C_chk.sel(unit_id=A.coords["unit_id"].values)
+    C = save_minian(C_new.rename("C"), intpath, overwrite=True)
+    C_chk = save_minian(C_chk_new.rename("C_chk"), intpath, overwrite=True)
     YrA = save_minian(
         compute_trace(Y_fm_chk, A, b, C_chk, f).rename("YrA"),
         intpath,
@@ -184,9 +197,18 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
     )
     sig = save_minian(sig_mrg.rename("sig_mrg"), intpath, overwrite=True)
     ## second iteration
-    A_new, b_new, f_new, mask = update_spatial(
-        Y_hw_chk, A, b, sig, f, sn_spatial, **param["second_spatial"]
+    A_new, mask, norm_fac = update_spatial(
+        Y_hw_chk, A, C, sn_spatial, **param["second_spatial"]
     )
+    C_new = save_minian(
+        (C.sel(unit_id=mask) * norm_fac).rename("C_new"), intpath, overwrite=True
+    )
+    C_chk_new = save_minian(
+        (C_chk.sel(unit_id=mask) * norm_fac).rename("C_chk_new"),
+        intpath,
+        overwrite=True,
+    )
+    b_new, f_new = update_background(Y_fm_chk, A_new, C_chk_new)
     A = save_minian(
         A_new.rename("A"),
         intpath,
@@ -197,8 +219,8 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
     f = save_minian(
         f_new.chunk({"frame": chk["frame"]}).rename("f"), intpath, overwrite=True
     )
-    C = C.sel(unit_id=A.coords["unit_id"].values)
-    C_chk = C_chk.sel(unit_id=A.coords["unit_id"].values)
+    C = save_minian(C_new.rename("C"), intpath, overwrite=True)
+    C_chk = save_minian(C_chk_new.rename("C_chk"), intpath, overwrite=True)
     YrA = save_minian(
         compute_trace(Y_fm_chk, A, b, C_chk, f).rename("YrA"),
         intpath,

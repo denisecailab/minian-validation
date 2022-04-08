@@ -50,7 +50,6 @@ MINIAN_PARAMS = {
     "first_spatial": {
         "dl_wnd": 3,
         "sparse_penal": 1e-4,
-        "update_background": True,
         "size_thres": (5, None),
     },
     "first_temporal": {
@@ -66,7 +65,6 @@ MINIAN_PARAMS = {
     "second_spatial": {
         "dl_wnd": 3,
         "sparse_penal": 1e-3,
-        "update_background": True,
         "size_thres": (5, None),
     },
     "second_temporal": {
