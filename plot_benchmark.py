@@ -16,7 +16,11 @@ from matplotlib.ticker import EngFormatter
 from routine.plotting import ax_tick, format_tick, it_lab
 
 IN_DPATH = "./data/simulated/benchmark"
-IN_PROF_FILES = {"minian": "minian_prof.csv", "caiman": "caiman_prof.csv"}
+IN_PROF_FILES = {
+    "minian": "minian_prof.csv",
+    "caiman": "caiman_prof.csv",
+    "minian-vis": "minian_vis_prof.csv",
+}
 IN_DIR_PATTERN = r"fm(?P<nfm>[0-9]+)-cell(?P<ncell>[0-9]+)"
 FIG_BENCH_ALL = "./fig/benchmark/overall"
 OUT_CSV_PATH = "./output/Figure18"
@@ -90,7 +94,11 @@ sns.set_style("ticks")
 id_vars = ["pipeline", "nfm", "ncell"]
 val_vars = ["duration", "max_mem"]
 metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
-pipeline_dict = {"minian": "Minian", "caiman": "CaImAn"}
+pipeline_dict = {
+    "minian": "Minian",
+    "caiman": "CaImAn",
+    "minian-vis": "Minian-Visualization",
+}
 
 
 def rename_axis(data, **kwargs):
@@ -123,8 +131,8 @@ fig.map_dataframe(
     x="nfm",
     y="value",
     hue="pipeline",
-    hue_order=("CaImAn", "Minian"),
-    palette={"Minian": "darkblue", "CaImAn": "red"},
+    hue_order=("CaImAn", "Minian", "Minian-Visualization"),
+    palette={"Minian": "darkblue", "CaImAn": "red", "Minian-Visualization": "green"},
     marker="o",
     legend="full",
 )
