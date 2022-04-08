@@ -28,11 +28,20 @@ from minian.utilities import (
     open_minian,
     save_minian,
 )
+from minian.visualization import write_video, generate_videos
 
 from .profiling import PipelineProfiler
 
 
-def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler, glow_rm=True,):
+def minian_process(
+    dpath,
+    intpath,
+    n_workers,
+    param,
+    profiler: PipelineProfiler,
+    glow_rm=True,
+    output_video=False,
+):
     # setup
     profiler.change_phase("setup")
     profiler.start()
@@ -82,6 +91,9 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
         overwrite=True,
         chunks={"frame": -1, "height": chk["height"], "width": chk["width"]},
     )
+    if output_video:
+        vid_arr = xr.concat([varr_ref, Y_fm_chk], "width").chunk({"width": -1})
+        write_video(vid_arr, "minian_mc.mp4", dpath)
     # initilization
     profiler.change_phase("initialization")
     max_proj = save_minian(
@@ -249,6 +261,8 @@ def minian_process(dpath, intpath, n_workers, param,  profiler: PipelineProfiler
         c0_new.rename("c0").chunk({"unit_id": 1, "frame": -1}), intpath, overwrite=True
     )
     A = A.sel(unit_id=C.coords["unit_id"].values)
+    if output_video:
+        generate_videos(varr, Y_fm_chk, A=A, C=C_chk, vpath=dpath)
     # save result
     A = save_minian(A.rename("A"), **param["save_minian"])
     C = save_minian(C.rename("C"), **param["save_minian"])
