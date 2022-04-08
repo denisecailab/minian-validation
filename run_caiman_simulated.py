@@ -74,17 +74,19 @@ if __name__ == "__main__":
         avifiles = list(filter(lambda f: f.endswith(".avi"), files))
         if not avifiles:
             continue
-        sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
         params = PARAM_DICT.copy()
-        try:
-            params.update(PARAM_PER_SIG[sig])
-        except KeyError:
-            continue
         quality = QUALITY_DICT.copy()
-        try:
-            quality.update(QUALITY_PER_SIG[sig])
-        except KeyError:
-            pass
+        fmatch = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root)
+        if fmatch:
+            sig, ncell = fmatch.groups()
+            try:
+                params.update(PARAM_PER_SIG[sig])
+            except KeyError:
+                continue
+            try:
+                quality.update(QUALITY_PER_SIG[sig])
+            except KeyError:
+                pass
         profiler = PipelineProfiler(
             proc=os.getpid(),
             interval=0.2,
