@@ -33,6 +33,7 @@ def prof_metric(df: pd.DataFrame):
         {
             "duration": df.iloc[-1]["timestamp"] - df.iloc[0]["timestamp"],
             "max_mem": df["mem_sum"].max(),
+            "max_swap": df["mem_swap"].max(),
         }
     )
 
@@ -49,7 +50,10 @@ for root, dirs, files in os.walk(IN_DPATH):
             prof_df = pd.read_csv(os.path.join(root, prof_file))
         except FileNotFoundError:
             continue
-        prof_df = prof_df.groupby("phase").apply(prof_metric).reset_index()
+        try:
+            prof_df = prof_df.groupby("phase").apply(prof_metric).reset_index()
+        except KeyError:
+            continue
         prof_df["pipeline"] = pipeline
         prof_df["nfm"] = match.group("nfm")
         prof_df["ncell"] = match.group("ncell")
@@ -57,7 +61,7 @@ for root, dirs, files in os.walk(IN_DPATH):
 prof_df = pd.concat(df_ls, ignore_index=True)
 
 #%% plot overall performance
-ASPECT = 1.4
+ASPECT = 1
 SMALL_SIZE = 8
 MEDIUM_SIZE = 11
 BIG_SIZE = 11
@@ -93,7 +97,12 @@ sns.set(
 sns.set_style("ticks")
 id_vars = ["pipeline", "nfm", "ncell"]
 val_vars = ["duration", "max_mem"]
-metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
+metric_dict = {
+    "duration": "Run Time (minutes)",
+    "max_mem": "Peak Memory (MB)",
+    "max_swap": "Peak Swap (MB)",
+}
+range_dict = {"duration": (0, 110), "max_mem": (0, 23e3), "max_swap": (0, 23e3)}
 pipeline_dict = {
     "minian": "Minian",
     "caiman": "CaImAn",
@@ -106,9 +115,14 @@ def rename_axis(data, **kwargs):
     ax.set_ylabel(metric_dict[data.iloc[0]["variable"]])
 
 
+def rerange_axis(data, **kwargs):
+    ax = plt.gca()
+    ax.set_ylim(*range_dict[data.iloc[0]["variable"]])
+
+
 prof_agg = (
     prof_df.groupby(id_vars)
-    .agg({"duration": "sum", "max_mem": "max"})
+    .agg({"duration": "sum", "max_mem": "max", "max_swap": "max"})
     .reset_index()
     .astype({"ncell": int, "nfm": int})
     .sort_values(["pipeline", "ncell", "nfm"])
@@ -137,6 +151,7 @@ fig.map_dataframe(
     legend="full",
 )
 fig.map_dataframe(rename_axis)
+fig.map_dataframe(rerange_axis)
 fig.map_dataframe(ax_tick, x_var="nfm")
 fig.map(format_tick, x_formatter=EngFormatter(), y_formatter=EngFormatter())
 fig.map(it_lab)
