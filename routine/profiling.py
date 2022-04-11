@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import psutil
 from memory_profiler import memory_usage
 
 from .utilities import append_csv
@@ -23,6 +24,7 @@ def prof_loop(proc, interval, outpath, states) -> None:
             mem_chld, index=["mem_chld{}".format(i) for i in range(len(mem_chld))]
         )
         row = pd.concat([mem_all, mem_chld])
+        row["mem_swap"] = psutil.swap_memory().used / (1024**2)
         row["phase"] = states["phase"]
         append_csv(row, outpath)
         time.sleep(interval)
@@ -38,7 +40,7 @@ class PipelineProfiler:
         self.states["TERMINATE"] = False
         self.states["phase"] = None
         memdf = pd.DataFrame(
-            columns=["timestamp", "phase", "mem_sum"]
+            columns=["timestamp", "phase", "mem_sum", "mem_swap"]
             + ["mem_chld{}".format(i) for i in range(nchild)]
         )
         memdf.to_csv(outpath, index=False)
