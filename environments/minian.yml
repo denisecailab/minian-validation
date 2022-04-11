@@ -3,3 +3,5 @@ channels:
 dependencies:
   - minian==1.2.1
   - memory_profiler
+  - psutil
+  - jinja2==3.0.3
