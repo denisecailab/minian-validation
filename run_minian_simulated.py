@@ -4,8 +4,14 @@ script to run minian pipeline on datasets
 env: environments/minian.yml
 """
 
+import io
 import os
+import re
 import shutil
+import traceback
+import warnings
+from contextlib import redirect_stdout
+from copy import deepcopy
 
 import numpy as np
 
@@ -54,12 +60,12 @@ MINIAN_PARAMS = {
     },
     "first_temporal": {
         "noise_freq": 0.06,
-        "sparse_penal": 10,
+        "sparse_penal": 0.5,
         "p": 2,
         "add_lag": 100,
         "jac_thres": 0.2,
         "med_wd": None,
-        "use_smooth": True,
+        "use_smooth": False,
     },
     "first_merge": {"thres_corr": 0.6},
     "second_spatial": {
@@ -69,23 +75,34 @@ MINIAN_PARAMS = {
     },
     "second_temporal": {
         "noise_freq": 0.06,
-        "sparse_penal": 10,
+        "sparse_penal": 0.5,
         "p": 2,
         "add_lag": 100,
         "jac_thres": 0.4,
         "med_wd": None,
-        "use_smooth": True,
+        "use_smooth": False,
     },
 }
+PARAM_PER_SIG = {"0.2": {"seeds_init": {"diff_thres": 4}, "pnr_refine": {"thres": 1.5}}}
 
 if __name__ == "__main__":
+    warnings.filterwarnings("ignore")
+    np.seterr(all="ignore")
     DPATH = os.path.abspath(DPATH)
     MINIAN_INT_PATH = os.path.abspath(os.path.expanduser(MINIAN_INT_PATH))
     for root, dirs, files in os.walk(DPATH):
         avifiles = list(filter(lambda f: f.endswith(".avi"), files))
         if not avifiles:
             continue
-        MINIAN_PARAMS["save_minian"]["dpath"] = os.path.join(root, "minian_result")
+        params = deepcopy(MINIAN_PARAMS)
+        params["save_minian"]["dpath"] = os.path.join(root, "minian_result")
+        fmatch = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root)
+        if fmatch:
+            sig, ncell = fmatch.groups()
+            try:
+                params.update(PARAM_PER_SIG[sig])
+            except KeyError:
+                pass
         profiler = PipelineProfiler(
             proc=os.getpid(),
             interval=0.2,
@@ -94,11 +111,13 @@ if __name__ == "__main__":
         )
         shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
         try:
-            minian_process(
-                root, MINIAN_INT_PATH, 4, MINIAN_PARAMS, profiler, glow_rm=False
-            )
+            with redirect_stdout(io.StringIO()):
+                A, C, S = minian_process(
+                    root, MINIAN_INT_PATH, 4, params, profiler, glow_rm=False
+                )
             print("minian success: {}".format(root))
-        except Exception as e:
+            print("ncells: {}".format(A.sizes["unit_id"]))
+        except Exception as err:
             print("minian failed: {}".format(root))
             with open(os.path.join(root, "minian_error"), "w") as txtf:
-                txtf.write(str(e))
+                traceback.print_exception(None, err, err.__traceback__, file=txtf)

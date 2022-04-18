@@ -274,6 +274,7 @@ def minian_process(
     client.close()
     cluster.close()
     profiler.terminate()
+    return A, C, S
 
 
 def preprocess_data(dpath, intpath, param, subset=None):

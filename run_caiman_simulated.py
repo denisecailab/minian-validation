@@ -13,7 +13,7 @@ import warnings
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/benchmark"
+DPATH = "./data/simulated/validation"
 CAIMAN_INT_PATH = "~/var/minian-validation/intermediate-cm"
 
 
@@ -45,8 +45,8 @@ PARAM_DICT = {
     "method_deconvolution": "oasis",  # could use 'cvxpy' alternatively
     "low_rank_background": None,  # None leaves background of each patch intact
     "update_background_components": True,  # sometimes setting to False improve the results
-    "min_corr": 0.75,  # min peak value from correlation image
-    "min_pnr": 7,  # min peak to noise ration from PNR image
+    "min_corr": 0.9,  # min peak value from correlation image
+    "min_pnr": 10,  # min peak to noise ration from PNR image
     "normalize_init": False,  # just leave as is
     "center_psf": True,  # leave as is for 1 photon
     "ssub_B": 2,  # additional downsampling factor in space for background
@@ -54,15 +54,15 @@ PARAM_DICT = {
     "del_duplicates": True,  # whether to remove duplicates from initialization
 }
 QUALITY_DICT = {
-    "min_SNR": 3,  # adaptive way to set threshold on the transient size
-    "rval_thr": 0.85,  # threshold on space consistency
+    "min_SNR": 0.5,  # adaptive way to set threshold on the transient size
+    "rval_thr": 0.7,  # threshold on space consistency
     "use_cnn": False,
 }
 PARAM_PER_SIG = {
-    "0.2": {"min_pnr": 8, "min_corr": 0.9},
-    # "0.4": {"min_pnr": 10, "min_corr": 0.9},
+    "0.2": {"min_pnr": 5, "min_corr": 0.7},
+    "0.4": {"min_pnr": 8, "min_corr": 0.8},
 }
-QUALITY_PER_SIG = {"0.2": {"min_SNR": 1, "rval_thr": 0.7}}
+QUALITY_PER_SIG = dict()
 
 if __name__ == "__main__":
     DPATH = os.path.abspath(DPATH)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             try:
                 params.update(PARAM_PER_SIG[sig])
             except KeyError:
-                continue
+                pass
             try:
                 quality.update(QUALITY_PER_SIG[sig])
             except KeyError:
