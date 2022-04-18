@@ -25,7 +25,7 @@ if __name__ == "__main__":
         }
     )
     out_path = "data/simulated/validation"
-    sig_ls = [0.2, 0.4, 0.6, 1, 1.4, 1.8]
+    sig_ls = [0.2, 0.4, 0.6, 1, 1.4, 1.8, 2, 5, 8, 10]
     ncell_ls = [100, 300, 500]
 
     os.makedirs(out_path, exist_ok=True)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
             sz_mean=15,
             sz_sigma=5,
             sz_min=3,
-            tmp_pfire=0.01,
+            tmp_pfire=0.005,
             tmp_tau_d=60,
             tmp_tau_r=5,
             bg_nsrc=300,
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             mo_stp_var=1,
             mo_cons_fac=0.2,
             post_offset=1,
-            post_gain=50,
+            post_gain=60 / max(sig, 1),
         )
     client.close()
     cluster.close()
