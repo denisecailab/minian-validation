@@ -48,19 +48,19 @@ f1_ls = []
 mapping_ls = []
 for root, dirs, files in os.walk(IN_SIM_DPATH):
     try:
-        minian_ds = list(filter(lambda f: re.search(IN_MINIAN_RESULT_PAT, f), dirs))[0]
-        caiman_ds = list(filter(lambda f: re.search(IN_CAIMAN_RESULT_PAT, f), files))[0]
         truth_ds = list(filter(lambda f: re.search("simulated$", f), dirs))[0]
+        truth_ds = open_minian(os.path.join(root, truth_ds))
+        sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
     except IndexError:
         continue
+    minian_ds = list(filter(lambda f: re.search(IN_MINIAN_RESULT_PAT, f), dirs))[0]
+    caiman_ds = list(filter(lambda f: re.search(IN_CAIMAN_RESULT_PAT, f), files))[0]
     minian_ds = open_minian(os.path.join(root, minian_ds))
     caiman_ds = xr.open_dataset(os.path.join(root, caiman_ds)).transpose(
         "unit_id", "frame", "height", "width"
     )
-    truth_ds = open_minian(os.path.join(root, truth_ds))
     f1_minian, mapping_minian = compute_metrics(minian_ds, truth_ds, coarsen_factor=5)
     f1_caiman, mapping_caiman = compute_metrics(caiman_ds, truth_ds, coarsen_factor=5)
-    sig, ncell = re.search(r"sig([0-9\.]+)-cell([0-9]+)", root).groups()
     mapping_minian["sig"] = sig
     mapping_caiman["sig"] = sig
     mapping_minian["ncell"] = ncell
