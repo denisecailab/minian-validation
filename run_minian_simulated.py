@@ -89,19 +89,13 @@ if __name__ == "__main__":
         profiler = PipelineProfiler(
             proc=os.getpid(),
             interval=0.2,
-            outpath=os.path.join(root, "minian_vis_prof.csv"),
+            outpath=os.path.join(root, "minian_prof.csv"),
             nchild=10,
         )
         shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
         try:
             minian_process(
-                root,
-                MINIAN_INT_PATH,
-                4,
-                MINIAN_PARAMS,
-                profiler,
-                glow_rm=False,
-                output_video=True,
+                root, MINIAN_INT_PATH, 4, MINIAN_PARAMS, profiler, glow_rm=False
             )
             print("minian success: {}".format(root))
         except Exception as e:

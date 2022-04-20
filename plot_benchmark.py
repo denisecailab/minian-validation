@@ -145,7 +145,7 @@ fig.map_dataframe(
     x="nfm",
     y="value",
     hue="pipeline",
-    hue_order=("CaImAn", "Minian", "Minian-Visualization"),
+    hue_order=("CaImAn", "Minian"),
     palette={"Minian": "darkblue", "CaImAn": "red", "Minian-Visualization": "green"},
     marker="o",
     legend="full",
