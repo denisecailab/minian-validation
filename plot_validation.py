@@ -142,9 +142,15 @@ def set_yaxis(data, set_range=False, **kwargs):
         ax.set_ylim(ylim_dict[var])
 
 
+def set_logx(**kwargs):
+    ax = plt.gca()
+    ax.set_xscale("log")
+
+
 mapping_df = pd.read_feather(
     os.path.join(OUT_PATH, "mapping_simulated.feather")
 ).replace({"pipeline": pipeline_dict})
+mapping_df = mapping_df[~mapping_df["sig"].isin([1.8, 10])].copy()
 metric_df = {
     "median": mapping_df.groupby(id_vars)[metrics]
     .median()
@@ -186,8 +192,13 @@ for mtype, mdf in metric_df.items():
         fig.map_dataframe(set_yaxis, set_range=True)
     else:
         fig.map_dataframe(set_yaxis)
+    fig.map(set_logx)
     fig.map_dataframe(ax_tick, x_var="sig")
-    fig.map(format_tick, y_formatter=StrMethodFormatter("{x:.2f}"))
+    fig.map(
+        format_tick,
+        y_formatter=StrMethodFormatter("{x:.2f}"),
+        x_formatter=StrMethodFormatter("{x:g}"),
+    )
     fig.map(it_lab)
     fig.add_legend()
     fig.set_xlabels("Signal Level")
@@ -237,11 +248,12 @@ corr_ylab = "Deconvolved Correlation"
 corr_xlab = "Signal Level"
 layout = [["100", "300", "500"], ["traces", "traces", "traces"]]
 offset_pipeline = 0
-offset_unit = 1.1
+offset_unit = 1.2
 palette = {"Minian": "darkblue", "CaImAn": "red", "Ground Truth": "C2"}
 # process data
 mapping_df = pd.read_feather(os.path.join(OUT_PATH, "mapping_simulated.feather"))
 mapping_df = mapping_df[mapping_df["pipeline"] == "minian"]
+mapping_df = mapping_df[~mapping_df["sig"].isin([1.8, 10])].copy()
 mapping_sub_ls = []
 for (sig, ncell), subdf in mapping_df.groupby(["sig", "ncell"]):
     if ncell != 100:
@@ -269,8 +281,13 @@ for ncell, subdf in mapping_df.groupby("ncell"):
     cur_ax.set_ylim(corr_ylim)
     cur_ax.set_xlabel(corr_xlab)
     cur_ax.set_title("{} cells".format(ncell))
+    cur_ax.set_xscale("log")
     ax_tick(data=subdf, ax=cur_ax, x_var="sig")
-    format_tick(ax=cur_ax, y_formatter=StrMethodFormatter("{x:.2f}"))
+    format_tick(
+        ax=cur_ax,
+        y_formatter=StrMethodFormatter("{x:.2f}"),
+        x_formatter=StrMethodFormatter("{x:g}"),
+    )
     if ncell == 100:
         cur_ax.set_ylabel(corr_ylab)
     else:
@@ -303,7 +320,7 @@ for ir, row in mapping_sub.iterrows():
     if ir == 0:
         lineA.set_label("Minian")
         lineB.set_label("Ground Truth")
-ax_tr.set_ylim(-1.3, len(mapping_sub) * offset_unit + 1.6)
+ax_tr.set_ylim(-1.8, len(mapping_sub) * offset_unit + 2)
 ax_tr.set_xlim(-50, 5000)
 legs, labs = ax_tr.get_legend_handles_labels()
 ax_tr.legend(legs[::-1], labs[::-1], loc="upper right")
