@@ -1,73 +1,97 @@
 pipeline,nfm,ncell,variable,value
-CaImAn,4000,100,duration,8.418449020385742
-CaImAn,12000,100,duration,27.18520898024241
-CaImAn,20000,100,duration,39.832313203811644
-CaImAn,28000,100,duration,63.590078965822855
-CaImAn,4000,300,duration,10.247504059473673
-CaImAn,12000,300,duration,28.62366886138916
-CaImAn,20000,300,duration,46.71417956749598
-CaImAn,28000,300,duration,65.31323098738989
-CaImAn,4000,500,duration,10.964493199189503
-CaImAn,12000,500,duration,29.913031339645386
-CaImAn,20000,500,duration,48.851877228418985
-CaImAn,28000,500,duration,67.82618992726007
-Minian,4000,100,duration,5.986222740014394
-Minian,12000,100,duration,9.766180709997814
-Minian,20000,100,duration,15.178998704751333
-Minian,28000,100,duration,20.276993056138355
-Minian,4000,300,duration,7.683259507020314
-Minian,12000,300,duration,13.20826565027237
-Minian,20000,300,duration,21.44321258465449
-Minian,28000,300,duration,28.724307139714558
-Minian,4000,500,duration,8.887048065662384
-Minian,12000,500,duration,16.493216125170388
-Minian,20000,500,duration,27.396779878934225
-Minian,28000,500,duration,36.65651529630025
-Minian-Visualization,4000,100,duration,9.512606644630432
-Minian-Visualization,12000,100,duration,23.350097099939983
-Minian-Visualization,20000,100,duration,37.92206458648046
-Minian-Visualization,28000,100,duration,52.00788494348526
-Minian-Visualization,4000,300,duration,12.455384377638499
-Minian-Visualization,12000,300,duration,28.81516287724177
-Minian-Visualization,20000,300,duration,47.394691693782804
-Minian-Visualization,28000,300,duration,64.85105882485708
-Minian-Visualization,4000,500,duration,14.938862983385722
-Minian-Visualization,12000,500,duration,34.039312366644545
-Minian-Visualization,20000,500,duration,54.943813757101694
-Minian-Visualization,28000,500,duration,75.85738741954168
-CaImAn,4000,100,max_mem,9008.33984375
-CaImAn,12000,100,max_mem,31253.08984375
-CaImAn,20000,100,max_mem,43644.0
-CaImAn,28000,100,max_mem,76433.01953125
-CaImAn,4000,300,max_mem,12607.62890625
-CaImAn,12000,300,max_mem,33407.1796875
-CaImAn,20000,300,max_mem,55690.09765625
-CaImAn,28000,300,max_mem,77584.82421875
-CaImAn,4000,500,max_mem,12866.04296875
-CaImAn,12000,500,max_mem,33923.296875
-CaImAn,20000,500,max_mem,56610.15234375
-CaImAn,28000,500,max_mem,80031.64453125
-Minian,4000,100,max_mem,6524.54296875
-Minian,12000,100,max_mem,8205.7578125
-Minian,20000,100,max_mem,8976.20703125
-Minian,28000,100,max_mem,9855.01171875
-Minian,4000,300,max_mem,7254.51953125
-Minian,12000,300,max_mem,8243.98046875
-Minian,20000,300,max_mem,9470.9375
-Minian,28000,300,max_mem,10312.8671875
-Minian,4000,500,max_mem,7319.79296875
-Minian,12000,500,max_mem,8536.09765625
-Minian,20000,500,max_mem,9466.2890625
-Minian,28000,500,max_mem,10372.91015625
-Minian-Visualization,4000,100,max_mem,8783.51171875
-Minian-Visualization,12000,100,max_mem,12090.6796875
-Minian-Visualization,20000,100,max_mem,12321.59765625
-Minian-Visualization,28000,100,max_mem,14941.125
-Minian-Visualization,4000,300,max_mem,11876.078125
-Minian-Visualization,12000,300,max_mem,12405.07421875
-Minian-Visualization,20000,300,max_mem,13775.5703125
-Minian-Visualization,28000,300,max_mem,15086.61328125
-Minian-Visualization,4000,500,max_mem,14284.125
-Minian-Visualization,12000,500,max_mem,15850.015625
-Minian-Visualization,20000,500,max_mem,17499.72265625
-Minian-Visualization,28000,500,max_mem,16573.27734375
+CaImAn,4000,100,duration,8.334515420595805
+CaImAn,12000,100,duration,24.71388920545578
+CaImAn,20000,100,duration,39.84136385917664
+CaImAn,28000,100,duration,63.35038496653239
+CaImAn,4000,300,duration,10.191370173295338
+CaImAn,12000,300,duration,28.412438058853148
+CaImAn,20000,300,duration,46.553164573510486
+CaImAn,28000,300,duration,64.4991576274236
+CaImAn,4000,500,duration,9.575862928231556
+CaImAn,12000,500,duration,29.03901481628418
+CaImAn,20000,500,duration,46.9144171833992
+CaImAn,28000,500,duration,59.55558295249939
+CaImAn with visualization,4000,100,duration,9.098008294900259
+CaImAn with visualization,12000,100,duration,28.293150361378988
+CaImAn with visualization,20000,100,duration,41.66832422018051
+CaImAn with visualization,28000,100,duration,67.58800879716873
+CaImAn with visualization,4000,300,duration,10.832484551270802
+CaImAn with visualization,12000,300,duration,30.35778405268987
+CaImAn with visualization,20000,300,duration,49.913779111703235
+CaImAn with visualization,28000,300,duration,69.1837347428004
+CaImAn with visualization,4000,500,duration,10.264909636974334
+CaImAn with visualization,12000,500,duration,31.23099170525869
+CaImAn with visualization,20000,500,duration,50.76619245608648
+CaImAn with visualization,28000,500,duration,70.3402283390363
+Minian,4000,100,duration,7.870052393277486
+Minian,12000,100,duration,17.997505724430084
+Minian,20000,100,duration,29.150809212525687
+Minian,28000,100,duration,39.408375493685405
+Minian,4000,300,duration,10.384314556916555
+Minian,12000,300,duration,22.81636832157771
+Minian,20000,300,duration,36.57171657482783
+Minian,28000,300,duration,49.65637058417003
+Minian,4000,500,duration,12.262515942255655
+Minian,12000,500,duration,27.083737325668334
+Minian,20000,500,duration,42.93144075075785
+Minian,28000,500,duration,58.30473332007726
+Minian with visualization,4000,100,duration,10.729863687356312
+Minian with visualization,12000,100,duration,24.504680168628692
+Minian with visualization,20000,100,duration,39.62888474067052
+Minian with visualization,28000,100,duration,54.43089555104574
+Minian with visualization,4000,300,duration,13.7229629834493
+Minian with visualization,12000,300,duration,30.541810301939645
+Minian with visualization,20000,300,duration,49.058564364910126
+Minian with visualization,28000,300,duration,67.53158574899038
+Minian with visualization,4000,500,duration,15.956756774584452
+Minian with visualization,12000,500,duration,36.03055531581243
+Minian with visualization,20000,500,duration,57.36470345258713
+Minian with visualization,28000,500,duration,78.1576733469963
+CaImAn,4000,100,max_mem,10358.5625
+CaImAn,12000,100,max_mem,35067.31640625
+CaImAn,20000,100,max_mem,46231.25390625
+CaImAn,28000,100,max_mem,78231.68359375
+CaImAn,4000,300,max_mem,14148.3359375
+CaImAn,12000,300,max_mem,35924.16015625
+CaImAn,20000,300,max_mem,57309.35546875
+CaImAn,28000,300,max_mem,78592.171875
+CaImAn,4000,500,max_mem,12500.1875
+CaImAn,12000,500,max_mem,38514.4609375
+CaImAn,20000,500,max_mem,58912.20703125
+CaImAn,28000,500,max_mem,83470.26953125
+CaImAn with visualization,4000,100,max_mem,9137.70703125
+CaImAn with visualization,12000,100,max_mem,32741.47265625
+CaImAn with visualization,20000,100,max_mem,46037.75390625
+CaImAn with visualization,28000,100,max_mem,78232.1640625
+CaImAn with visualization,4000,300,max_mem,13076.203125
+CaImAn with visualization,12000,300,max_mem,35273.70703125
+CaImAn with visualization,20000,300,max_mem,57355.89453125
+CaImAn with visualization,28000,300,max_mem,78679.05859375
+CaImAn with visualization,4000,500,max_mem,11749.125
+CaImAn with visualization,12000,500,max_mem,36990.77734375
+CaImAn with visualization,20000,500,max_mem,59115.3984375
+CaImAn with visualization,28000,500,max_mem,80050.4921875
+Minian,4000,100,max_mem,9994.20703125
+Minian,12000,100,max_mem,12033.140625
+Minian,20000,100,max_mem,14616.89453125
+Minian,28000,100,max_mem,15695.25
+Minian,4000,300,max_mem,11771.359375
+Minian,12000,300,max_mem,14006.734375
+Minian,20000,300,max_mem,15276.7421875
+Minian,28000,300,max_mem,16927.3046875
+Minian,4000,500,max_mem,14986.67578125
+Minian,12000,500,max_mem,17452.6875
+Minian,20000,500,max_mem,18699.625
+Minian,28000,500,max_mem,19875.88671875
+Minian with visualization,4000,100,max_mem,9337.5
+Minian with visualization,12000,100,max_mem,11754.8046875
+Minian with visualization,20000,100,max_mem,14943.45703125
+Minian with visualization,28000,100,max_mem,15651.93359375
+Minian with visualization,4000,300,max_mem,11609.48828125
+Minian with visualization,12000,300,max_mem,13562.40625
+Minian with visualization,20000,300,max_mem,15014.33984375
+Minian with visualization,28000,300,max_mem,16603.4609375
+Minian with visualization,4000,500,max_mem,14358.34375
+Minian with visualization,12000,500,max_mem,16294.83203125
+Minian with visualization,20000,500,max_mem,17663.1015625
+Minian with visualization,28000,500,max_mem,19425.5703125

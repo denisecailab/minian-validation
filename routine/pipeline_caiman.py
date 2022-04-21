@@ -45,6 +45,7 @@ def caiman_process(
     profiler: PipelineProfiler = None,
     vpat: str = r".*\.avi",
     copy_to_int=False,
+    visualization=False,
 ):
     fnames = natsorted(
         [os.path.join(dpath, v) for v in os.listdir(dpath) if re.search(vpat, v)]
@@ -121,6 +122,12 @@ def caiman_process(
     print("initialization done")
     if profiler is not None:
         profiler.change_phase("cnmf")
+    if visualization:
+        cn_filter, pnr = cm.summary_images.correlation_pnr(
+            images[:: int(params_dict["tsub"])],
+            gSig=params_dict["gSig"][0],
+            swap_dim=False,
+        )
     cnm = cnmf.CNMF(n_processes=n_processes, dview=dview, Ain=Ain, params=opts)
     cnm.fit(images)
     print("cnmf done")

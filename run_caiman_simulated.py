@@ -13,10 +13,12 @@ import warnings
 from routine.pipeline_caiman import caiman_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/validation"
+DPATH = "./data/simulated/benchmark"
 CAIMAN_INT_PATH = "~/var/minian-validation/intermediate-cm"
-
-
+if DPATH.endswith("benchmark"):
+    OUT_FNAMES = {True: "caiman_vis_prof.csv", False: "caiman_prof.csv"}
+else:
+    OUT_FNAMES = {False: "caiman_prof.csv"}
 MC_DICT = {
     "fr": 60,  # movie frame rate
     "decay_time": 3,  # length of a typical transient in seconds
@@ -87,28 +89,30 @@ if __name__ == "__main__":
                 quality.update(QUALITY_PER_SIG[sig])
             except KeyError:
                 pass
-        profiler = PipelineProfiler(
-            proc=os.getpid(),
-            interval=0.2,
-            outpath=os.path.join(root, "caiman_prof.csv"),
-            nchild=10,
-        )
-        shutil.rmtree(CAIMAN_INT_PATH, ignore_errors=True)
-        os.makedirs(CAIMAN_INT_PATH, exist_ok=True)
-        try:
-            caiman_process(
-                root,
-                root,
-                CAIMAN_INT_PATH,
-                4,
-                MC_DICT,
-                params,
-                quality,
-                profiler,
-                copy_to_int=True,
+        for do_vis, fname in OUT_FNAMES.items():
+            profiler = PipelineProfiler(
+                proc=os.getpid(),
+                interval=0.2,
+                outpath=os.path.join(root, fname),
+                nchild=10,
             )
-            print("caiman sucess: {}".format(root))
-        except Exception as e:
-            print("caiman failed: {}".format(root))
-            with open(os.path.join(root, "caiman_error"), "w") as txtf:
-                txtf.write(str(e))
+            shutil.rmtree(CAIMAN_INT_PATH, ignore_errors=True)
+            os.makedirs(CAIMAN_INT_PATH, exist_ok=True)
+            try:
+                caiman_process(
+                    root,
+                    root,
+                    CAIMAN_INT_PATH,
+                    4,
+                    MC_DICT,
+                    params,
+                    quality,
+                    profiler,
+                    copy_to_int=True,
+                    visualization=do_vis,
+                )
+                print("caiman sucess: {}".format(root))
+            except Exception as e:
+                print("caiman failed: {}".format(root))
+                with open(os.path.join(root, "caiman_error"), "w") as txtf:
+                    txtf.write(str(e))

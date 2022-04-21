@@ -1,24 +1,19 @@
+import itertools as itt
 import os
 
+import holoviews as hv
 import numpy as np
 import xarray as xr
 from dask.distributed import Client, LocalCluster
-from memory_profiler import memory_usage
 from minian.cnmf import (
     compute_trace,
     get_noise_fft,
     unit_merge,
+    update_background,
     update_spatial,
     update_temporal,
-    update_background,
 )
-from minian.initialization import (
-    initA,
-    initC,
-    pnr_refine,
-    seeds_init,
-    seeds_merge,
-)
+from minian.initialization import initA, initC, pnr_refine, seeds_init, seeds_merge
 from minian.motion_correction import apply_transform, estimate_motion
 from minian.preprocessing import denoise, remove_background
 from minian.utilities import (
@@ -28,7 +23,13 @@ from minian.utilities import (
     open_minian,
     save_minian,
 )
-from minian.visualization import write_video, generate_videos
+from minian.visualization import (
+    generate_videos,
+    visualize_preprocess,
+    visualize_spatial_update,
+    visualize_temporal_update,
+    write_video,
+)
 
 from .profiling import PipelineProfiler
 
@@ -40,11 +41,12 @@ def minian_process(
     param,
     profiler: PipelineProfiler,
     glow_rm=True,
-    output_video=False,
+    visualization=False,
 ):
     # setup
     profiler.change_phase("setup")
     profiler.start()
+    hv.notebook_extension("bokeh")
     dpath = os.path.abspath(os.path.expanduser(dpath))
     intpath = os.path.abspath(os.path.expanduser(intpath))
     os.environ["OMP_NUM_THREADS"] = "1"
@@ -74,6 +76,19 @@ def minian_process(
     if glow_rm:
         varr_min = varr_ref.min("frame").compute()
         varr_ref = varr_ref - varr_min
+    if visualization:
+        visualize_preprocess(
+            varr_ref.isel(frame=0).compute(),
+            denoise,
+            method=["median"],
+            ksize=[5, 7, 9],
+        )
+        visualize_preprocess(
+            varr_ref.isel(frame=0).compute(),
+            remove_background,
+            method=["tophat"],
+            wnd=[10, 15, 20],
+        )
     varr_ref = denoise(varr_ref, **param["denoise"])
     varr_ref = remove_background(varr_ref, **param["background_removal"])
     varr_ref = save_minian(varr_ref.rename("varr_ref"), dpath=intpath, overwrite=True)
@@ -91,7 +106,7 @@ def minian_process(
         overwrite=True,
         chunks={"frame": -1, "height": chk["height"], "width": chk["width"]},
     )
-    if output_video:
+    if visualization:
         vid_arr = xr.concat([varr_ref, Y_fm_chk], "width").chunk({"width": -1})
         write_video(vid_arr, "minian_mc.mp4", dpath)
     # initilization
@@ -136,6 +151,28 @@ def minian_process(
     sn_spatial = get_noise_fft(Y_hw_chk, **param["get_noise"])
     sn_spatial = save_minian(sn_spatial.rename("sn_spatial"), intpath, overwrite=True)
     ## first iteration
+    if visualization:
+        units = np.random.choice(A.coords["unit_id"], 10, replace=False)
+        units.sort()
+        A_sub = A.sel(unit_id=units).persist()
+        C_sub = C.sel(unit_id=units).persist()
+        sprs_ls = [0.005, 0.01, 0.05]
+        A_dict = dict()
+        C_dict = dict()
+        for cur_sprs in sprs_ls:
+            cur_A, cur_mask, cur_norm = update_spatial(
+                Y_hw_chk,
+                A_sub,
+                C_sub,
+                sn_spatial,
+                in_memory=True,
+                dl_wnd=param["first_spatial"]["dl_wnd"],
+                sparse_penal=cur_sprs,
+            )
+            if cur_A.sizes["unit_id"]:
+                A_dict[cur_sprs] = cur_A.compute()
+                C_dict[cur_sprs] = C_sub.sel(unit_id=cur_mask).compute()
+        hv_res = visualize_spatial_update(A_dict, C_dict, kdims=["sparse penalty"])
     A_new, mask, norm_fac = update_spatial(
         Y_hw_chk,
         A,
@@ -164,6 +201,64 @@ def minian_process(
     )
     C = save_minian(C_new.rename("C"), intpath, overwrite=True)
     C_chk = save_minian(C_chk_new.rename("C_chk"), intpath, overwrite=True)
+    if visualization:
+        units = np.random.choice(A.coords["unit_id"], 10, replace=False)
+        units.sort()
+        A_sub = A.sel(unit_id=units).persist()
+        C_sub = C_chk.sel(unit_id=units).persist()
+        p_ls = [1]
+        sprs_ls = [0.1, 0.5, 1, 2]
+        add_ls = [20]
+        noise_ls = [0.06]
+        YA_dict, C_dict, S_dict, g_dict, sig_dict, A_dict = [dict() for _ in range(6)]
+        YrA = (
+            compute_trace(Y_fm_chk, A_sub, b, C_sub, f)
+            .persist()
+            .chunk({"unit_id": 1, "frame": -1})
+        )
+        for cur_p, cur_sprs, cur_add, cur_noise in itt.product(
+            p_ls, sprs_ls, add_ls, noise_ls
+        ):
+            ks = (cur_p, cur_sprs, cur_add, cur_noise)
+            print(
+                "p:{}, sparse penalty:{}, additional lag:{}, noise frequency:{}".format(
+                    cur_p, cur_sprs, cur_add, cur_noise
+                )
+            )
+            cur_C, cur_S, cur_b0, cur_c0, cur_g, cur_mask = update_temporal(
+                A_sub,
+                C_sub,
+                YrA=YrA,
+                sparse_penal=cur_sprs,
+                p=cur_p,
+                use_smooth=True,
+                add_lag=cur_add,
+                noise_freq=cur_noise,
+            )
+            (
+                YA_dict[ks],
+                C_dict[ks],
+                S_dict[ks],
+                g_dict[ks],
+                sig_dict[ks],
+                A_dict[ks],
+            ) = (
+                YrA.compute(),
+                cur_C.compute(),
+                cur_S.compute(),
+                cur_g.compute(),
+                (cur_C + cur_b0 + cur_c0).compute(),
+                A_sub.compute(),
+            )
+        hv_res = visualize_temporal_update(
+            YA_dict,
+            C_dict,
+            S_dict,
+            g_dict,
+            sig_dict,
+            A_dict,
+            kdims=["p", "sparse penalty", "additional lag", "noise frequency"],
+        )
     YrA = save_minian(
         compute_trace(Y_fm_chk, A, b, C_chk, f).rename("YrA"),
         intpath,
@@ -209,6 +304,28 @@ def minian_process(
     )
     sig = save_minian(sig_mrg.rename("sig_mrg"), intpath, overwrite=True)
     ## second iteration
+    if visualization:
+        units = np.random.choice(A.coords["unit_id"], 10, replace=False)
+        units.sort()
+        A_sub = A.sel(unit_id=units).persist()
+        C_sub = C.sel(unit_id=units).persist()
+        sprs_ls = [0.005, 0.01, 0.05]
+        A_dict = dict()
+        C_dict = dict()
+        for cur_sprs in sprs_ls:
+            cur_A, cur_mask, cur_norm = update_spatial(
+                Y_hw_chk,
+                A_sub,
+                C_sub,
+                sn_spatial,
+                in_memory=True,
+                dl_wnd=param["first_spatial"]["dl_wnd"],
+                sparse_penal=cur_sprs,
+            )
+            if cur_A.sizes["unit_id"]:
+                A_dict[cur_sprs] = cur_A.compute()
+                C_dict[cur_sprs] = C_sub.sel(unit_id=cur_mask).compute()
+        hv_res = visualize_spatial_update(A_dict, C_dict, kdims=["sparse penalty"])
     A_new, mask, norm_fac = update_spatial(
         Y_hw_chk, A, C, sn_spatial, **param["second_spatial"]
     )
@@ -233,6 +350,64 @@ def minian_process(
     )
     C = save_minian(C_new.rename("C"), intpath, overwrite=True)
     C_chk = save_minian(C_chk_new.rename("C_chk"), intpath, overwrite=True)
+    if visualization:
+        units = np.random.choice(A.coords["unit_id"], 10, replace=False)
+        units.sort()
+        A_sub = A.sel(unit_id=units).persist()
+        C_sub = C_chk.sel(unit_id=units).persist()
+        p_ls = [1]
+        sprs_ls = [0.1, 0.5, 1, 2]
+        add_ls = [20]
+        noise_ls = [0.06]
+        YA_dict, C_dict, S_dict, g_dict, sig_dict, A_dict = [dict() for _ in range(6)]
+        YrA = (
+            compute_trace(Y_fm_chk, A_sub, b, C_sub, f)
+            .persist()
+            .chunk({"unit_id": 1, "frame": -1})
+        )
+        for cur_p, cur_sprs, cur_add, cur_noise in itt.product(
+            p_ls, sprs_ls, add_ls, noise_ls
+        ):
+            ks = (cur_p, cur_sprs, cur_add, cur_noise)
+            print(
+                "p:{}, sparse penalty:{}, additional lag:{}, noise frequency:{}".format(
+                    cur_p, cur_sprs, cur_add, cur_noise
+                )
+            )
+            cur_C, cur_S, cur_b0, cur_c0, cur_g, cur_mask = update_temporal(
+                A_sub,
+                C_sub,
+                YrA=YrA,
+                sparse_penal=cur_sprs,
+                p=cur_p,
+                use_smooth=True,
+                add_lag=cur_add,
+                noise_freq=cur_noise,
+            )
+            (
+                YA_dict[ks],
+                C_dict[ks],
+                S_dict[ks],
+                g_dict[ks],
+                sig_dict[ks],
+                A_dict[ks],
+            ) = (
+                YrA.compute(),
+                cur_C.compute(),
+                cur_S.compute(),
+                cur_g.compute(),
+                (cur_C + cur_b0 + cur_c0).compute(),
+                A_sub.compute(),
+            )
+        hv_res = visualize_temporal_update(
+            YA_dict,
+            C_dict,
+            S_dict,
+            g_dict,
+            sig_dict,
+            A_dict,
+            kdims=["p", "sparse penalty", "additional lag", "noise frequency"],
+        )
     YrA = save_minian(
         compute_trace(Y_fm_chk, A, b, C_chk, f).rename("YrA"),
         intpath,
@@ -261,7 +436,7 @@ def minian_process(
         c0_new.rename("c0").chunk({"unit_id": 1, "frame": -1}), intpath, overwrite=True
     )
     A = A.sel(unit_id=C.coords["unit_id"].values)
-    if output_video:
+    if visualization:
         generate_videos(varr, Y_fm_chk, A=A, C=C_chk, vpath=dpath)
     # save result
     A = save_minian(A.rename("A"), **param["save_minian"])

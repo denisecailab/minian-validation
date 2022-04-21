@@ -20,6 +20,7 @@ IN_PROF_FILES = {
     "minian": "minian_prof.csv",
     "caiman": "caiman_prof.csv",
     "minian-vis": "minian_vis_prof.csv",
+    "caiman-vis": "caiman_vis_prof.csv",
 }
 IN_DIR_PATTERN = r"fm(?P<nfm>[0-9]+)-cell(?P<ncell>[0-9]+)"
 FIG_BENCH_ALL = "./fig/benchmark/overall"
@@ -97,7 +98,14 @@ metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
 pipeline_dict = {
     "minian": "Minian",
     "caiman": "CaImAn",
-    "minian-vis": "Minian-Visualization",
+    "minian-vis": "Minian with visualization",
+    "caiman-vis": "CaImAn with visualization",
+}
+pallete = {
+    "Minian": "darkblue",
+    "CaImAn": "red",
+    "Minian with visualization": "green",
+    "CaImAn with visualization": "orange",
 }
 
 
@@ -131,8 +139,8 @@ fig.map_dataframe(
     x="nfm",
     y="value",
     hue="pipeline",
-    hue_order=("CaImAn", "Minian", "Minian-Visualization"),
-    palette={"Minian": "darkblue", "CaImAn": "red", "Minian-Visualization": "green"},
+    hue_order=list(pipeline_dict.values()),
+    palette=pallete,
     marker="o",
     legend="full",
 )

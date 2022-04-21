@@ -18,9 +18,12 @@ import numpy as np
 from routine.pipeline_minian import minian_process
 from routine.profiling import PipelineProfiler
 
-DPATH = "./data/simulated/validation"
+DPATH = "./data/simulated/benchmark"
 MINIAN_INT_PATH = "~/var/minian-validation/intermediate"
-
+if DPATH.endswith("benchmark"):
+    OUT_FNAMES = {True: "minian_vis_prof.csv", False: "minian_prof.csv"}
+else:
+    OUT_FNAMES = {False: "minian_prof.csv"}
 MINIAN_PARAMS = {
     "save_minian": {
         "meta_dict": None,
@@ -83,7 +86,14 @@ MINIAN_PARAMS = {
         "use_smooth": False,
     },
 }
-PARAM_PER_SIG = {"0.2": {"seeds_init": {"diff_thres": 4}, "pnr_refine": {"thres": 1.5}}}
+PARAM_PER_SIG = {
+    "0.2": {
+        "seeds_init": {"diff_thres": 10},
+        "pnr_refine": {"thres": 2},
+        "first_temporal": {"sparse_penal": 0.1},
+        "second_temporal": {"sparse_penal": 0.1},
+    }
+}
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
@@ -103,21 +113,28 @@ if __name__ == "__main__":
                 params.update(PARAM_PER_SIG[sig])
             except KeyError:
                 pass
-        profiler = PipelineProfiler(
-            proc=os.getpid(),
-            interval=0.2,
-            outpath=os.path.join(root, "minian_prof.csv"),
-            nchild=10,
-        )
-        shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
-        try:
-            with redirect_stdout(io.StringIO()):
-                A, C, S = minian_process(
-                    root, MINIAN_INT_PATH, 4, params, profiler, glow_rm=False
-                )
-            print("minian success: {}".format(root))
-            print("ncells: {}".format(A.sizes["unit_id"]))
-        except Exception as err:
-            print("minian failed: {}".format(root))
-            with open(os.path.join(root, "minian_error"), "w") as txtf:
-                traceback.print_exception(None, err, err.__traceback__, file=txtf)
+        for do_vis, fname in OUT_FNAMES.items():
+            profiler = PipelineProfiler(
+                proc=os.getpid(),
+                interval=0.2,
+                outpath=os.path.join(root, fname),
+                nchild=10,
+            )
+            shutil.rmtree(MINIAN_INT_PATH, ignore_errors=True)
+            try:
+                with redirect_stdout(io.StringIO()):
+                    A, C, S = minian_process(
+                        root,
+                        MINIAN_INT_PATH,
+                        4,
+                        params,
+                        profiler,
+                        glow_rm=False,
+                        visualization=do_vis,
+                    )
+                print("minian success: {}".format(root))
+                print("ncells: {}".format(A.sizes["unit_id"]))
+            except Exception as err:
+                print("minian failed: {}".format(root))
+                with open(os.path.join(root, "minian_error"), "w") as txtf:
+                    traceback.print_exception(None, err, err.__traceback__, file=txtf)
