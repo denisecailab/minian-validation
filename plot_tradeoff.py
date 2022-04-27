@@ -89,7 +89,7 @@ prof_agg = (
     .replace({"pipeline": pipeline_dict})
 )
 prof_agg["duration"] = prof_agg["duration"] / 60
-prof_agg = prof_agg[prof_agg["nps"] <= 5]
+prof_agg = prof_agg[prof_agg["nps"].between(2, 10)]
 os.makedirs(OUT_CSV_PATH, exist_ok=True)
 prof_agg.to_csv(os.path.join(OUT_CSV_PATH, "tradeoff.csv"), index=False)
 fig, ax = plt.subplots()
