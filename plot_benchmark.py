@@ -104,8 +104,20 @@ pipeline_dict = {
 pallete = {
     "Minian": "darkblue",
     "CaImAn": "red",
-    "Minian with visualization": "green",
-    "CaImAn with visualization": "orange",
+    "Minian with visualization": "orange",
+    "CaImAn with visualization": "purple",
+}
+dash_dict = {
+    "Minian": "",
+    "CaImAn": "",
+    "Minian with visualization": (2, 2),
+    "CaImAn with visualization": (2, 2),
+}
+mk_dict = {
+    "Minian": "o",
+    "CaImAn": "o",
+    "Minian with visualization": "X",
+    "CaImAn with visualization": "X",
 }
 
 
@@ -140,6 +152,9 @@ fig.map_dataframe(
     y="value",
     hue="pipeline",
     hue_order=list(pipeline_dict.values()),
+    style="pipeline",
+    dashes=dash_dict,
+    markers=mk_dict,
     palette=pallete,
     marker="o",
     legend="full",
