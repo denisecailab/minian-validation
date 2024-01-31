@@ -4,7 +4,7 @@ script to generate figures for benchmark results
 env: environments/generic.yml
 """
 
-#%% imports and definitions
+# %% imports and definitions
 import os
 import re
 
@@ -24,6 +24,7 @@ IN_PROF_FILES = {
 }
 IN_DIR_PATTERN = r"fm(?P<nfm>[0-9]+)-cell(?P<ncell>[0-9]+)"
 FIG_BENCH_ALL = "./fig/benchmark/overall"
+FIG_BENCH_STP = "./fig/benchmark/steps"
 OUT_CSV_PATH = "./output/Figure18"
 
 os.makedirs(FIG_BENCH_ALL, exist_ok=True)
@@ -38,7 +39,7 @@ def prof_metric(df: pd.DataFrame):
     )
 
 
-#%% load benchmark results
+# %% load benchmark results
 df_ls = []
 for root, dirs, files in os.walk(IN_DPATH):
     csvf = list(filter(lambda f: f in list(IN_PROF_FILES.values()), files))
@@ -57,7 +58,24 @@ for root, dirs, files in os.walk(IN_DPATH):
         df_ls.append(prof_df)
 prof_df = pd.concat(df_ls, ignore_index=True)
 
-#%% plot overall performance
+# %% plot step-by-step performance
+prof_df_sub = prof_df[prof_df["pipeline"].isin(["minian", "minian-vis"])]
+g = sns.FacetGrid(
+    prof_df_sub,
+    row="pipeline",
+    col="ncell",
+    hue="phase",
+    legend_out=True,
+    margin_titles=True,
+)
+g.map_dataframe(sns.barplot, x="nfm", y="duration")
+g.add_legend()
+g.set_axis_labels(x_var="number of frames", y_var="duration (s)")
+os.makedirs(FIG_BENCH_STP, exist_ok=True)
+g.fig.savefig(os.path.join(FIG_BENCH_STP, "master.svg"), bbox_inches="tight")
+g.fig.savefig(os.path.join(FIG_BENCH_STP, "master.png"), dpi=500, bbox_inches="tight")
+
+# %% plot overall performance
 ASPECT = 1.4
 SMALL_SIZE = 8
 MEDIUM_SIZE = 11
