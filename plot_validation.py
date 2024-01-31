@@ -88,10 +88,10 @@ mapping_df.astype({"ncell": int, "sig": float}).to_feather(
 )
 
 #%% plot simulated results
-ASPECT = 1.2
-SMALL_SIZE = 8
-MEDIUM_SIZE = 11
-BIG_SIZE = 11
+ASPECT = 1.5
+SMALL_SIZE = 8.5
+MEDIUM_SIZE = 14
+BIG_SIZE = 14
 WIDTH = 7.87  # 20cm
 sns.set(
     rc={
@@ -176,7 +176,7 @@ for mtype, mdf in metric_df.items():
         col="ncell",
         margin_titles=True,
         legend_out=True,
-        row_order=["f1", "Acorr", "Ccorr"],
+        row_order=["f1", "Ccorr"],
     )
     fig.map_dataframe(
         sns.lineplot,
@@ -203,6 +203,7 @@ for mtype, mdf in metric_df.items():
     fig.add_legend()
     fig.set_xlabels("Signal Level")
     fig.set_titles(row_template="", col_template="{col_name} cells")
+    plt.subplots_adjust(right=0.8)
     fig.figure.set_size_inches((WIDTH, WIDTH / ASPECT))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.svg".format(mtype)))
     fig.savefig(os.path.join(FIG_PATH, "simulated-{}.png".format(mtype)))
@@ -420,9 +421,9 @@ mapping_df.to_feather(os.path.join(OUT_PATH, "mapping_real.feather"))
 #%% plot real results
 ASPECT = 0.7
 WIDTH = 7.87  # 20cm
-SMALL_SIZE = 9
-MEDIUM_SIZE = 10
-BIG_SIZE = 11
+SMALL_SIZE = 13
+MEDIUM_SIZE = 14
+BIG_SIZE = 15
 sns.set(
     rc={
         "figure.figsize": (WIDTH, WIDTH / ASPECT),

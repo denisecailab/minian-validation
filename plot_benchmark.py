@@ -98,8 +98,8 @@ metric_dict = {"duration": "Run Time (minutes)", "max_mem": "Peak Memory (MB)"}
 pipeline_dict = {
     "minian": "Minian",
     "caiman": "CaImAn",
-    "minian-vis": "Minian with visualization",
-    "caiman-vis": "CaImAn with visualization",
+    # "minian-vis": "Minian with visualization",
+    # "caiman-vis": "CaImAn with visualization",
 }
 pallete = {
     "Minian": "darkblue",
@@ -126,6 +126,7 @@ def rename_axis(data, **kwargs):
     ax.set_ylabel(metric_dict[data.iloc[0]["variable"]])
 
 
+prof_df = prof_df[prof_df["pipeline"].isin(pipeline_dict.keys())].copy()
 prof_agg = (
     prof_df.groupby(id_vars)
     .agg({"duration": "sum", "max_mem": "max"})
